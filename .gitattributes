@@ -1,0 +1,7 @@
+# normalise text to LF in the repository, whatever the platform checks out
+* text=auto eol=lf
+
+# never touch the deliverables
+*.stl binary
+*.png binary
+*.pdf binary

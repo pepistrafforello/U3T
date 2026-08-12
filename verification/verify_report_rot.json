@@ -1,0 +1,63 @@
+{
+  "bottom": {
+    "watertight": true,
+    "winding": true,
+    "bodies": 1,
+    "volume_mm3": 88379.7,
+    "bounds": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        100.0,
+        100.0,
+        12.050000190734863
+      ]
+    ]
+  },
+  "top": {
+    "watertight": true,
+    "winding": true,
+    "bodies": 1,
+    "volume_mm3": 57572.2,
+    "bounds": [
+      [
+        0.0,
+        0.0,
+        7.650000095367432
+      ],
+      [
+        100.0,
+        100.0,
+        15.0
+      ]
+    ]
+  },
+  "assembled_overlap_mm3": 0.0,
+  "rotation_about_A": {
+    "0.05": 0.0,
+    "0.1": 0.0,
+    "0.25": 0.0,
+    "0.5": 0.0,
+    "1": 0.0,
+    "2": 0.0,
+    "4": 0.0,
+    "7": 0.0,
+    "10": 0.0,
+    "15": 0.0,
+    "20": 0.0,
+    "25": 0.0
+  },
+  "separation_pass": true,
+  "negative_controls_mm3": {
+    "straight up 1mm": 128.47448170731272,
+    "straight up 2mm": 227.55146391167122,
+    "flat diagonal 1mm": 416.2616848598603,
+    "flat diagonal 2mm": 926.1430111404455,
+    "straight-d slide 2mm": 282.12762664508347,
+    "straight-d slide 5mm": 73.76113564954896,
+    "reverse rotation 1deg": 21424.29441697252
+  }
+}

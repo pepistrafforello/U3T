@@ -1,0 +1,43 @@
+U3T — the Unnamed 3D Thingy
+Copyright 2026 Giuseppe Strafforello
+
+This product includes software and design files developed by Giuseppe Strafforello.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+these files except in compliance with the License. You may obtain a copy of the
+License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied.
+
+
+Third-party material
+--------------------
+
+docs/original-design-notes.pdf and the images extracted from it into
+docs/figures/original/ are the author's own working notes. They reproduce, as
+incidental illustrations inside those notes, a small number of screenshots that
+are not the author's work:
+
+  * docs/figures/original/p02_0.png, p02_1.png — renders of the classic
+    two-diagonal-groove solution, modelled by Roger, reproduced with thanks;
+  * docs/figures/original/p07_0.png — a screenshot of a published general
+    machining-tolerance table (Xometry).
+
+These remain the property of their respective owners and are not covered by the
+Apache License grant above. Everything else in this repository — source code,
+generated geometry, STL files, generated figures and prose — is the author's own
+work and is licensed as stated above.
+
+
+Acknowledgements
+----------------
+
+The original puzzle appears as a critical-thinking exercise in a book by the
+author's former manager; the elegant straight-groove solution modelled by Roger
+is the starting point the rest of this project argues with. The minimum-feature
+revision described in docs/The-Unnamed-3D-Thingy.md follows a manufacturability
+review by the engineering team at Xometry.

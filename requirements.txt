@@ -1,0 +1,22 @@
+# U3T — Python dependencies
+#
+# Tested on Python 3.11.5 (Windows 11) with the versions noted in brackets.
+# Blender is NOT a Python package: the photographic figures need a separate
+# Blender 5.x installation on PATH (see README, "Reproducing the figures").
+
+# --- geometry pipeline: u3t_generator.py, u3t_rot_generator.py, dfm_scan.py ---
+numpy>=1.24            # [2.4.6]
+shapely>=2.0           # [2.1.2]   2D artwork, offsets, morphological cleanup
+trimesh>=4.4           # [4.10.1]  mesh container, sections, exports, checks
+manifold3d>=2.3        # [3.3.2]   robust watertight boolean kernel
+mapbox-earcut>=1.0     # [2.0.0]   polygon triangulation backend for trimesh
+rtree>=1.0             # [1.4.1]   spatial index used by trimesh cross-sections
+scipy>=1.10            # [1.16.3]  convex hulls, connected components
+networkx>=3.0          # [3.6.1]   mesh graph operations in trimesh
+qrcode>=7.4            # [8.2]     the hidden payload
+matplotlib>=3.7        # [3.10.8]  glyph outlines for the engraved text; diagrams
+
+# --- figures and article tooling: tools/ ---
+pillow>=10.0           # [12.3.0]  flatten / crop / montage the Blender renders
+markdown>=3.4          # [3.10.2]  article markdown -> pasteable HTML
+pypdf>=4.0             # optional: re-extract docs/figures/original/ from the PDF

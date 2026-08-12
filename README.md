@@ -70,7 +70,7 @@ docs/
   The-Unnamed-3D-Thingy.md    the full write-up: theory, Fusion walkthrough, generator,
                               verification, printing, and the rotation chapter
   original-design-notes.pdf   the notes the project started from, years before it was finished
-  figures/                    figures for the write-up (`original/` = extracted from the PDF)
+  figures/                    figures for the write-up (original/ = extracted from the PDF)
   article/medium-post.md      the article, in Medium's voice
   article/images/             its renders (Blender/Cycles) and diagrams (matplotlib)
 

@@ -55,19 +55,30 @@ KEY_NECK_ZR = 8.8                        # neck before the flare: the shallow (f
                                          # starts at 0.44 x 1.3 = 0.57 mm depth
 KEY_HW0R, KEY_HW1R = 6.0, 10.0           # same widths as the straight edition
 KEY_RAIL_R = 8.0
-# ---- the interface plane ----------------------------------------------------
-# Same reasoning as the straight edition, with one piece of luck. The orbit
-# direction -- the local mating direction here -- varies a lot across the block,
-# from 27.6 deg off vertical at one corner to 55.8 deg at the other. But along
-# the (1, 1) diagonal it is exactly constant at 37.64 deg, because points on that
-# line share the same perpendicular radius from the axis. So a single flat plane
-# CAN be normal to the motion along the whole length of a strip laid on that
-# diagonal -- the other diagonal from the straight edition, whose strip runs
-# along (1, -1).
-PLAT_TILT_R = 25.0                       # deg; PLAT_TILT_PERP_R is exactly normal
-PLAT_ZR = 11.0                           # z at the middle of the band
-PLAT_Z_LO_R, PLAT_Z_HI_R = 8.5, 13.5     # the slice of slab it has to stay inside
-PLAT_MARGIN_R = 14.0                     # keep the band this far from the faces
+# ---- the interface: a sawtooth fan ------------------------------------------
+# A single tilted plane is normal to the motion but runs out of a 15 mm slab
+# almost at once, which left a canvas 12 mm wide. The fix is many canvases.
+#
+# The rotation edition makes that unusually clean. A plane through the rotation
+# axis is perpendicular to EVERY orbit it meets -- its tangent space at any point
+# is spanned by the axis direction and the radius, and the orbit velocity is
+# perpendicular to both. So each facet of the fan can be exactly normal to the
+# motion everywhere on it, not merely at one point.
+#
+# In the unwrapped design plan the interface is then a descending staircase in
+# radius: facets at constant phase (planes through the axis), separated by risers
+# at constant radius (cylinders about the axis). Cylinders about the axis are
+# swept by orbits, so the risers are exactly the "cliffs parallel to the motion"
+# that the height-field rule already allows.
+#
+# Depth does not buy area -- the facet run is dz/tan(phi) and the riser run is
+# dz*tan(phi), so the split is cos^2(phi) whatever the depth. Depth buys STRIP
+# WIDTH, and it is paid for in floor thickness under the canvas and in riser
+# height. 9 mm gives five strips of 12.7 to 17.5 mm.
+CANVAS_Z_LO = 4.5        # floor: what the bottom part keeps under the canvas
+CANVAS_Z_HI = 13.5       # ceiling: the top part keeps 15 - this above it
+CANVAS_INSET = 14.0      # keep the canvas this far from the side faces
+CANVAS_MAX_LEAN = 45.0   # trim the fan where a riser would overhang more than this
 
 CONTENT_R = False                        # relief: off while the content is redesigned
 QR_TOP_ZR = 12.2
@@ -83,30 +94,98 @@ def orbit_dir(P):
     return v / np.linalg.norm(v)
 
 
-_V_MID = orbit_dir([50.0, 50.0, PLAT_ZR])
-PLAT_TILT_PERP_R = np.degrees(np.arccos(_V_MID[2]))
-_TILT_R = np.radians(PLAT_TILT_R)
-TILT_SR = np.tan(_TILT_R) / SQ2                  # dz per unit of (x - y)
-PLAT_WID_R = (min(PLAT_Z_HI_R - PLAT_ZR, PLAT_ZR - PLAT_Z_LO_R) / np.tan(_TILT_R)
-              if PLAT_TILT_R > 1e-9 else 30.0)
-PLAT_WID_R = min(PLAT_WID_R, 30.0)
-PLAT_LEN_R = (L / 2 - PLAT_MARGIN_R) * SQ2 - PLAT_WID_R
-PLAT_N_R = np.array([TILT_SR, -TILT_SR, 1.0])
-PLAT_N_R /= np.linalg.norm(PLAT_N_R)             # the tilted plane's normal
+_B_LO = CANVAS_Z_LO - C[2]                 # height of the canvas floor above the axis
+_B_HI = CANVAS_Z_HI - C[2]
+CANVAS_K = _B_HI / _B_LO                   # radii step by this constant ratio
+CANVAS_RHO0 = _B_LO / np.sin(np.radians(CANVAS_MAX_LEAN))   # innermost printable radius
 
 
-def plat_plane_zr(x, y):
-    """Height of the interface plane over a real plan point."""
-    return PLAT_ZR - TILT_SR * (x - y)
+def axis_normal(phi):
+    """Normal of the plane through the axis at phase phi: the orbit direction there.
+
+    phi is both the plane's phase around the axis and its tilt from horizontal,
+    and the normal points the way the top part moves.
+    """
+    return np.sin(phi) * G + np.cos(phi) * ZAX
 
 
-def plat_poly_r(half_len, half_wid):
-    """The band as a REAL-plan polygon: long axis (1, 1), short axis (1, -1)."""
-    pts = []
-    for sp, sq in ((-1, -1), (-1, 1), (1, 1), (1, -1)):
-        px, qy = sp * half_len, sq * half_wid
-        pts.append((L / 2 + (px + qy) / SQ2, L / 2 + (px - qy) / SQ2))
-    return Polygon(pts)
+def canvas_rho_max():
+    """Largest radius the canvas region reaches, so the fan knows where to stop."""
+    lo, hi = CANVAS_INSET, L - CANVAS_INSET
+    best = 0.0
+    for x, y in ((lo, lo), (lo, hi), (hi, lo), (hi, hi)):
+        g = (x - y - (C[0] - C[1])) / SQ2
+        for z in (CANVAS_Z_LO, CANVAS_Z_HI):
+            best = max(best, float(np.hypot(g, z - C[2])))
+    return best
+
+
+def canvas_facets():
+    """(outer radius, phase) per facet, outward from the printable trim radius.
+
+    Each facet spans the full depth: it starts where its plane crosses the floor
+    and ends where it crosses the ceiling, which puts the radii in a geometric
+    progression of ratio CANVAS_K.
+    """
+    stop = canvas_rho_max() * CANVAS_K
+    out, rho = [], CANVAS_RHO0
+    while rho < stop and len(out) < 40:
+        out.append((rho * CANVAS_K, np.arcsin(_B_LO / rho)))
+        rho *= CANVAS_K
+    return out
+
+
+def axis_cylinder(radius, sections=512):
+    """Solid cylinder of that radius about the rotation axis.
+
+    512 sections keeps the chord error under 0.005 mm at these radii, which is an
+    order of magnitude inside the clearance.
+    """
+    cyl = trimesh.creation.cylinder(radius=radius, height=400.0, sections=sections)
+    cyl.apply_transform(trimesh.geometry.align_vectors([0.0, 0.0, 1.0], E))
+    cyl.apply_translation(C)
+    return cyl
+
+
+def canvas_solid(delta):
+    """Everything under the fan, as a union of wedges.
+
+    With the surface a descending staircase phi(rho), the solid below it is
+
+        U_k [ cylinder(rho <= rho_k+1) AND half-space(phi <= phi_k) ]
+
+    because for a point at radius rho the first qualifying wedge is the one whose
+    band contains it, and every later wedge admits only a lower phase. Clearance
+    is a true perpendicular gap on both surfaces: facets are normal to the motion
+    so their planes shift along their own normal, and cylinders are parallel to
+    it so theirs shift in radius.
+    """
+    wedges = []
+    for rho_out, phi in canvas_facets():
+        n = axis_normal(phi)
+        wedges.append(cap_plane(axis_cylinder(rho_out + delta), C + n * delta, n))
+    return trimesh.boolean.union(wedges, engine="manifold")
+
+
+def canvas_footprint():
+    """Design-plan footprint of the canvas.
+
+    The curtain around it is parallel to the motion, so it drifts along the orbits
+    as it descends -- about 7 mm over the 9 mm of depth. Pre-imaging the region at
+    BOTH the floor and the ceiling and intersecting is exact (the drift is
+    monotonic in z), and saves having to pad the inset by guesswork.
+    """
+    reg = shapely.box(CANVAS_INSET, CANVAS_INSET, L - CANVAS_INSET, L - CANVAS_INSET)
+    # trim to the printable radius: the cylinder rho = CANVAS_RHO0 meets the floor
+    # along the line y - x = m, and its pre-image is that one curve
+    gt = np.sqrt(max(CANVAS_RHO0 ** 2 - _B_LO ** 2, 0.0))
+    m_trim = SQ2 * gt - (C[0] - C[1])       # the line y - x = m it cuts at the floor
+    big = 400.0
+    keep = Polygon([(-big, -big + m_trim), (big, big + m_trim),
+                    (big, big + 2 * big), (-big, -big + 2 * big)])
+    lo = geom_preimage(reg.intersection(keep), lambda x, y: (x, y, CANVAS_Z_LO), seg=2.0)
+    hi = geom_preimage(reg, lambda x, y: (x, y, CANVAS_Z_HI), seg=2.0)
+    return lo.intersection(hi)
 
 
 def cap_plane(mesh, origin, normal):
@@ -293,26 +372,44 @@ def build_L_rot(delta, art=()):
     # keys + rails
     for name, fp in key_footprints_rot(delta):
         meshes.append(cap(prism(fp, 1, 28, 14), KEY_Z1R + delta))
-    # the tilted interface band: orbit-swept curtain walls, capped by the plane
-    plat_lift = lambda x, y: (x, y, plat_plane_zr(x, y))
-    plat = geom_preimage(buffered(plat_poly_r(PLAT_LEN_R, PLAT_WID_R), delta),
-                         plat_lift, seg=2.0)
-    origin = np.array([L / 2, L / 2, PLAT_ZR]) + PLAT_N_R * delta
-    meshes.append(cap_plane(prism(plat, 1, 28, 14), origin, PLAT_N_R))
-    # relief on the band, when there is any
-    for geom, z_top in art:
-        rel = geom_preimage(content_offset(geom, delta), plat_lift)
-        meshes.append(cap_plane(prism(rel, 6, 26, 10),
-                                origin + PLAT_N_R * (z_top - PLAT_ZR), PLAT_N_R))
-    return trimesh.boolean.union(meshes, engine="manifold")
+    outer = trimesh.boolean.union(meshes, engine="manifold")
+
+    # The canvas floor sits below the seam, so the fan is not a plateau that can be
+    # stacked on the slab: each facet climbs from below the seam to above it, so
+    # the canvas is a BUMP over roughly its outer two thirds and a WELL over its
+    # inner third. Its footprint boundary is therefore a cliff, and a cliff needs
+    # clearance like any other sliding wall -- left shared, the two parts graze
+    # each other the moment the faceted orbit surfaces rotate out of register.
+    #
+    # The clearance cannot have one sign, because a bump must shrink where a well
+    # must grow. Splitting the cliff into the material the fan ADDS above the slab
+    # and the material it CUTS below does it: the additive half takes the footprint
+    # offset by delta, the subtractive half by -delta, and each is then correct on
+    # its own side with no case analysis.
+    fan = canvas_solid(delta)
+    fp = canvas_footprint()
+    add = prism(buffered(fp, delta), -8, 28, 24)
+    sub = prism(buffered(fp, -delta), -8, 28, 24)
+    built = trimesh.boolean.union(
+        [outer, trimesh.boolean.intersection([fan, add], engine="manifold")],
+        engine="manifold")
+    return trimesh.boolean.difference(
+        [built, trimesh.boolean.difference([sub, fan], engine="manifold")],
+        engine="manifold")
 
 
 # --------------------------------- build -------------------------------------
 def main():
-    print(f"interface plane: {PLAT_TILT_R:.1f} deg from horizontal "
-          f"({PLAT_TILT_PERP_R - PLAT_TILT_R:.1f} deg short of normal to the orbit)")
-    print(f"  band {2 * PLAT_LEN_R:.0f} x {2 * PLAT_WID_R / np.cos(_TILT_R):.1f} mm "
-          f"along the (1,1) diagonal")
+    fac = canvas_facets()
+    print(f"interface: a fan of {len(fac)} planes through the rotation axis, each one "
+          f"exactly normal to the orbits it meets")
+    print(f"  floor z={CANVAS_Z_LO}, ceiling z={CANVAS_Z_HI}, radii stepping by "
+          f"{CANVAS_K:.4f}, trimmed at {CANVAS_MAX_LEAN:.0f} deg of riser lean")
+    widths = [ro - ro / CANVAS_K for ro, _ in fac]
+    tilts = [np.degrees(p) for _, p in fac]
+    print(f"  strips {min(widths):.1f} to {max(widths):.1f} mm wide, "
+          f"tilts {min(tilts):.1f} to {max(tilts):.1f} deg "
+          f"(= the lean of each riser)")
     art = []
     if CONTENT_R:
         print("preparing 2D artwork (real plan)...")

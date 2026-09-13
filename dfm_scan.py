@@ -11,7 +11,11 @@ import trimesh
 
 STL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stl")
 FILES = ["U3T_bottom.stl", "U3T_top.stl", "U3T_rot_bottom.stl", "U3T_rot_top.stl"]
-ERODE, DILATE, MIN_PATCH = 0.249, 0.252, 0.30  # mm, mm, mm^2
+ERODE, DILATE, MIN_PATCH = 0.249, 0.252, 0.10  # mm, mm, mm^2
+# MIN_PATCH was 0.30: large enough to let a 0.2 mm x 16 mm unsupported
+# ledge on two of the keys read as a handful of small patches that were
+# waved through as chamfer edges. It is now well below anything that can
+# be dismissed by eye.
 
 
 def slice_polys(mesh, z):

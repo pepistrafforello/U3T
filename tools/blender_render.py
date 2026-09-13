@@ -16,7 +16,10 @@ import bpy
 from mathutils import Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:]
-SHOTS_JSON, OUT_DIR = argv[0], argv[1]
+# absolute, always: Blender resolves a relative render path against the drive
+# root, not the working directory, and silently writes the batch to C:uild
+SHOTS_JSON = os.path.abspath(argv[0])
+OUT_DIR = os.path.abspath(argv[1])
 FILTER = argv[2] if len(argv) > 2 else None
 os.makedirs(OUT_DIR, exist_ok=True)
 

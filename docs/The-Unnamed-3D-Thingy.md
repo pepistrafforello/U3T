@@ -285,10 +285,27 @@ carries no free space for information. Adding the third axis is what buys the fr
   the block through a *side face*, not through the floor. A protruding feature there (a key tab)
   can end up connected to nothing once the stock box crops its leaning prism — it becomes a
   watertight but *floating* fragment, invisible to most mesh checks. The fix is structural: run
-  every key tab into an **interior anchor rail** (same width, several mm inward, unioned before
-  the clearance offset), so the visible tab is just the end of a solid internal rail — exactly
-  like the tongue of a real sliding dovetail. And always verify the **body count**: each finished
-  part must be one connected solid (Part 10).
+  every key tab into an **interior anchor rail**, unioned in before the clearance offset, so the
+  visible tab is just the end of a solid internal rail — exactly like the tongue of a real sliding
+  dovetail. And always verify the **body count**: each finished part must be one connected solid
+  (Part 10).
+- **Anchor it on the right edge — the face-shadow rule.** *Where* the rail starts is not a free
+  choice, and getting it wrong is what shipped the first printed pair with two fragile keys. As z
+  runs over the key, the side face sweeps a strip of the sheared plan:
+
+  > **face shadow** = { face position in (u, v) : z from the band to the key top }
+
+  Everything the footprint places inside that strip is what the face *shows*. Everything outside
+  it, on the inboard side, is invisible from outside and therefore free. So the rail must start at
+  the trapezoid edge lying **furthest inboard**, and it may be any width from there.
+
+  That edge is not the same one on every face. **d** leans into two of the four faces and out of
+  the other two: on the first pair it is the trapezoid's *base* edge, giving a rail as wide as the
+  key's waist; on the second pair it is the flare's *top* edge, so the rail comes out as wide as
+  the flare itself. Anchor all four on the base edge — the obvious reading — and on two faces the
+  flare is left cantilevered over nothing, 0.2 mm thick across 16 mm of width, while the rail
+  simultaneously breaks the surface of those faces by half a millimetre. Both failures are silent:
+  the parts still separate perfectly, and the mesh is still a single watertight solid.
 
 ## Part 7 — The reference design
 
@@ -301,7 +318,9 @@ curve" upgrade and its extra constraint, see Part 12). All values are parameters
 | extrusion direction **d** | (0.7, 0.7, 1) — 44.7° from vertical, at the FDM 45° print limit |
 | seam band height | z = 7.5 mm on all four faces |
 | key (per face, centered) | trapezoid: 12 mm wide at the band, 20 mm at the top, 4 mm tall — solid tab ~2.8 mm deep; a 0.8 mm straight neck precedes the flare so the lip is ≥ 0.55 mm deep everywhere (DFM) |
-| key anchor rail | 12 mm wide × 8 mm inward run per key, flat top at z 11.5 (Part 6 rule) |
+| key anchor rail | 6 mm inward run per key, flat top at z 11.5; started on the trapezoid's
+inboard-most edge, so it is 12 mm wide on the two faces **d** leans into and 20 mm — the full
+flare width — on the two it leans out of (Part 6, face-shadow rule) |
 | plateau | 45° (sheared) ramps from 68×68 @ z 7 to 60×60 @ z 11 |
 | QR code | 29×29 modules, 1.24 mm/module, relief +1.2 mm, payload `Congratulations Francesco! UofT '22` |
 | title / subtitle | relief +1.0 mm, DejaVu Sans Bold |
@@ -361,7 +380,7 @@ bottom part and +0.15 for the top part.
 
 1. New design, units mm. In **Modify ▸ Change Parameters** create user parameters:
    `L = 100`, `H = 15`, `band = 7.5`, `keyH = 4`, `keyW0 = 12`, `keyW1 = 20`,
-   `dx = 0.7`, `dy = 0.7`, `railLen = 8`, `ofs = -0.15`.
+   `dx = 0.7`, `dy = 0.7`, `railLen = 6`, `ofs = -0.15`.
 2. **Stock**: sketch an L × L square on the XY plane, corner at the origin; Extrude `H`.
    Rename the body `Stock`.
 3. **The direction path**: create a 3D sketch (Sketch ▸ Create 3D Sketch), draw a single line from
@@ -383,14 +402,24 @@ bottom part and +0.15 for the top part.
      falling outside the stock is discarded later by the final Combine.
    - Repeat on the right, back and left face planes. Do **not** use a circular pattern — a pattern
      would rotate the sweep direction, which must stay identical for all four keys.
-6. **Anchor rails** (the Part 6 rule — one per key; without these the printed tabs would be
-   orphaned wafers). On an offset plane at z = `band − 1` sketch a `keyW0 + 2·ofs` × `railLen`
-   rectangle, centered on the key's face position and starting just outside that face (for the
-   front key at z = 6.5 and dx = 0.7: x from 44.4 to 55.6, y from −0.7 to `railLen` − 0.7 — the
-   0.7 = `dy · (band − 1 − 6.5 + ...)` shift simply follows the Path; easiest is to project the
-   swept key and snap the rectangle to its base edge). **Sweep** the rectangle along `Path`
-   (Join), then **Split Body** with a plane at z = `band + keyH + ofs` and delete the part above,
-   so the rail's top is flat and flush with the key top.
+6. **Anchor rails** (the Part 6 rules — one per key; without these the printed tabs would be
+   orphaned wafers, and anchored on the wrong edge they are fragile instead). Each rail is a
+   rectangle swept along `Path` and trimmed flat, but **which edge of the key it starts from
+   depends on the face**, because **d** = (0.7, 0.7, 1) leans *into* the front and left faces and
+   *out of* the back and right ones:
+
+   - **Front and left keys** — the key's *base* edge is the inboard one. Sketch on an offset plane
+     at z = `band − 1`, project the swept key, and snap a `keyW0 + 2·ofs` × `railLen` rectangle to
+     its base edge, running inward.
+   - **Back and right keys** — the key's *top* edge is the inboard one. Sketch on an offset plane
+     at z = `band + keyH + ofs`, project the swept key, and snap a `keyW1 + 2·ofs` × `railLen`
+     rectangle — the **full flare width** — to the inner edge of its top face, running inward.
+
+   In both cases **Sweep** the rectangle along `Path` (Join), then **Split Body** with a plane at
+   z = `band + keyH + ofs` and delete the part above, so the rail's top is flat and flush with the
+   key top. Snapping all four to the base edge is the natural thing to do, and it is wrong: on the
+   back and right keys it leaves the flare cantilevered over nothing and pushes the rail out
+   through the face. Step 12 now checks for exactly that.
 7. **Plateau**: offset planes at z = 7 and z = 11; on them sketch concentric centered squares 68×68
    and 60×60 (each offset by `ofs`); **Create ▸ Loft** between them, Join to `Lower`. (Even at the
    44.7° tilt of **d**, a 45° ramp still opens up during the motion — **d**·**n** > 0 on all four
@@ -418,6 +447,12 @@ bottom part and +0.15 for the top part.
     exported part is **one connected lump**: a Fusion body can silently contain disjoint lumps
     after a Combine — load the STLs in the slicer and check its object list shows a single solid
     per file (Part 6, second rule).
+12b. **Check the four faces still match.** Sketch on each side face in turn and project the
+    finished bottom body onto it; the dovetail outline it draws must be the same trapezoid every
+    time, and the same one you drew in step 5. If one or two faces come out wider than the others
+    somewhere between the band and the key top, an anchor rail has broken through the surface —
+    revisit step 6. This costs two minutes, it is invisible in every other check, and it is the
+    difference between a puzzle and a box with a seam.
 13. Export each part with **3D Print / Save as Mesh** (STL or 3MF, fine refinement).
 
 ## Part 9 — Step by step, automated (and what it fixes)
@@ -450,14 +485,15 @@ clearance, even the number of sides via the key table) and re-run.
 
 | check | result |
 |---|---|
-| bottom part watertight, consistent winding | yes — 89 932 mm³, exactly inside [0,100]×[0,100]×[0,12.05] |
-| top part watertight, consistent winding | yes — 56 138 mm³, exactly inside [0,100]×[0,100]×[7.65,15] |
+| bottom part watertight, consistent winding | yes — 90 202 mm³, exactly inside [0,100]×[0,100]×[0,12.05] |
+| top part watertight, consistent winding | yes — 55 874 mm³, exactly inside [0,100]×[0,100]×[7.65,15] |
 | **connected bodies per part** | exactly 1 and 1 — no floating fragments |
+| **face fidelity** | the dovetail outline agrees across all four faces to 0.001 mm |
 | assembled overlap (boolean intersection) | 0.000000 mm³ |
 | slide along **d**, 14 stations t = 0.05 … 40 mm | 0.000000 mm³ overlap at every station |
-| **control**: pull straight up 1 mm / 2 mm | collides (61.1 / 102.8 mm³) — the keys lock, hard |
-| **control**: flat diagonal slide 1 mm / 2 mm | collides (341.1 / 863.3 mm³) — Roger's move does not open it |
-| thin-feature scan (`dfm_scan.py`, FDM 0.5 mm rule) | no free-standing feature below 0.5 mm on either part; the only sub-0.5 readings are solid-backed chamfer edges where the key flanks meet the faces |
+| **control**: pull straight up 1 mm / 2 mm | collides (63.0 / 108.5 mm³) — the keys lock, hard |
+| **control**: flat diagonal slide 1 mm / 2 mm | collides (344.8 / 882.2 mm³) — Roger's move does not open it |
+| thin-feature scan (`dfm_scan.py`, 0.5 mm FDM rule) | no free-standing feature below 0.5 mm; what remains is 0.27 mm² per patch where a flare flank runs out into its own face — a solid-backed corner, present in every flush dovetail |
 
 The two control rows are the puzzle property itself, demonstrated numerically: the naive motions
 jam, the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -465,6 +501,17 @@ body-count row exists because it once failed: an early draft with a near-vertica
 and no anchor rails produced keys that were watertight, collision-clean — and *detached* (visible
 as separated tabs in any mesh viewer). Watertightness alone does not catch that failure mode;
 counting connected components does.
+
+The **face-fidelity** row exists for the same reason, one printed object later. The first pair went
+out with every other row passing and two keys that were nonetheless fragile: their rails were
+anchored on the wrong edge (Part 6, face-shadow rule), which left the flare standing on 0.2 mm of
+material across 16 mm of width *and* pushed the rail 0.56 mm out through the surface of those two
+faces. Neither shows up in a separation test — the parts came apart perfectly — and the second one
+quietly falsifies the premise of the whole object, that the four sides look the same. Moving the
+anchor to the inboard edge took the bottom part's thin-feature total from 15.21 mm² to 3.31 mm²,
+its worst patch from 2.55 mm² to 0.27 mm², and the solid material behind the full width of those
+flares from 0.20 mm to 6.20 mm. Nothing about the outside of the object changed — which is the
+point, and now also the test.
 
 ## Part 11 — Printing and assembly
 
@@ -481,10 +528,15 @@ counting connected components does.
   text and QR keep their full nominal width (every stroke ≥ 0.55 mm after a morphological
   opening), and the mating cavities take the whole 0.3 mm, with sub-0.5 mm walls between
   neighbouring letter cavities fused away. The key flare starts above a short straight neck so
-  the lip depth never falls below 0.55 mm. The only sub-0.5 mm readings a wall-thickness checker
-  will still report are the tapering solid-backed edges where the flared flanks meet the side
-  faces — the printed result is a slightly rounded lip edge, present in every joint of this
-  family, with no structural or fit consequence.
+  the lip depth never falls below 0.55 mm. Each key is anchored on its inboard-most edge, so the
+  flare is backed by 6 mm of solid rail across its full width instead of being cantilevered
+  (Part 6, face-shadow rule). The only sub-0.5 mm readings a wall-thickness checker will still
+  report are the tapering solid-backed corners where a flared flank runs out into its own side
+  face: 0.27 mm² apiece, on two faces of each part. That corner is where two planes the design
+  fixes happen to meet at a shallow angle; it exists in every flush dovetail and cannot be removed
+  without changing what the faces show. It prints as a slightly rounded lip edge. It should not be
+  confused with the cantilevered ledge described in Part 10 — that one measured 2.55 mm² per patch,
+  had nothing behind it at all, and wore in service.
 - **Assembly**: rest the top part over the bottom, offset about +10 mm in x and y, and lower it
   along the diagonal (45°); it seats flush with one smooth push. Because the lean of **d** breaks
   the square's symmetry, **only one of the four rotations engages** — a nice extra beat for the
@@ -575,7 +627,8 @@ down where the axis can be:
 | arc radius at block center | ≈ 185 mm (grooves visibly curved: ~7 mm of sagitta across the block) |
 | opening motion | ≈ 12° of rotation frees the parts (verified clean out to 25°) |
 | key (per face, centered) | 12 mm at the band → 20 mm at the top, **4.5 mm tall** (7.5 → 12.0), with a 1.3 mm straight neck before the flare (DFM: lip depth ≥ 0.55 mm even on the shallow faces) |
-| key anchor rails | 12 × 8 mm, as in Part 7 |
+| key anchor rails | 12 × 8 mm, as in Part 7 — **not yet** carrying the face-shadow rule; see
+§14.8 |
 | plateau | flat top 60 × 60 at z = 11, **orbit-swept curtain walls** (no 45° ramps) |
 | QR / title / subtitle / clearance / signature | identical to Part 7 |
 
@@ -654,4 +707,17 @@ a nice demonstration of just how large this family of solutions is.
 | `verification/verify_report_rot.json` | machine-readable results of §14.5 |
 | `docs/figures/rot_*.png` | figures of this chapter |
 
-*pepi's notes, completed August 2026. The U3T finally has everything except a name.*
+**14.8 Still owed: the face-shadow rule.** The rotation edition was built before the rule in
+Part 6 existed, and it carries the same defect the straight edition has now shed: its keys are all
+anchored on the trapezoid base, so on the faces where the orbits leave the block the flare is
+cantilevered. `dfm_scan.py` reports it plainly — 1.55 mm² patches at z = 11.5 on the front and
+right faces, against 0.28 mm² for the inherent flank corners elsewhere. The remedy is identical in
+principle and slightly harder in practice: the face shadow is no longer a straight strip of the
+sheared plan, so its inboard edge must be obtained by running the face plane through
+`preimage_plan()` at the key top and at the band, and the rail anchored on whichever trapezoid edge
+falls outside it. Until that is done, print the straight edition for anything that will be handled.
+
+---
+
+*pepi's notes, completed August 2026; keys re-anchored September 2026, after the first printed pair
+came back with two flares worn thin. The U3T finally has everything except a name.*

@@ -28,7 +28,7 @@ import shapely.affinity as saff
 import trimesh
 from matplotlib.font_manager import FontProperties
 from matplotlib.textpath import TextPath
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import LineString, MultiPolygon, Polygon
 from shapely.ops import unary_union
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -50,7 +50,11 @@ KEY_Z0, KEY_Z1 = 7.5, 11.5   # dovetail key: from band to key top (face coords)
 KEY_HW0, KEY_HW1 = 6.0, 10.0  # half-width at band / at top  (flares upward = undercut)
 KEY_NECK_Z = 8.3     # straight neck below the flare: the lip starts where its depth
                      # (lean x height above band = 0.7 x 0.8) already exceeds 0.55 mm
-KEY_RAIL = 8.0       # interior anchor rail behind each key (plan length)
+KEY_RAIL = 6.0       # interior anchor rail behind each key (plan length).
+                     # Bounded by the plateau: the rails that start at the
+                     # flare (see key_footprints) reach 2.8 mm further in,
+                     # and at 8.0 their inboard end left a 0.28 mm wall
+                     # against the plateau ramp in the mating part.
 
 MIN_FEATURE = 0.55   # FDM min printable wall/stroke (Xometry: > 0.5 mm)
 
@@ -219,9 +223,22 @@ def key_footprints():
 
     Face trapezoid corners are defined in real 3D on each face, then projected to
     sheared plan coordinates (u, v) = (x - SHX*z, y - SHY*z). Each trapezoid is
-    unioned with a rail of the same width running KEY_RAIL mm toward the interior:
-    the visible tab is then the end of a solid internal rail, so it can never be
-    orphaned when the stock box crops away the outside of the leaning prism.
+    unioned with a rail running KEY_RAIL mm toward the interior: the visible tab
+    is then the end of a solid internal rail, so it can never be orphaned when
+    the stock box crops away the outside of the leaning prism.
+
+    The rail starts at whichever edge of the trapezoid lies furthest INSIDE the
+    block. That edge is not the same one on every face: as z runs over the key,
+    the face plane sweeps a strip of the sheared plan, and anything the footprint
+    puts inside that strip is what shows up on the face. Only the inboard-most
+    edge is guaranteed to sit outside it, so only from there can the rail be made
+    any width at all without altering the dovetail the face shows.
+
+    On the two faces d leans into, that edge is the trapezoid's base, giving the
+    12 mm rail this design has always had. On the two faces d leans out of, it is
+    the flare's top edge, so the rail comes out 20 mm wide and butts against the
+    back of the flare -- which is where those two keys were previously left
+    standing on air, 0.2 mm thick across 16 mm of width.
     """
     c = L / 2.0
     quads = []
@@ -243,7 +260,9 @@ def key_footprints():
         trap = Polygon(uv)
         if not trap.is_valid:
             trap = trap.buffer(0)
-        b1, b2 = uv[0], uv[1]
+        depth = [n[0] * u + n[1] * v for (u, v) in uv]
+        i1, i0 = sorted(range(len(uv)), key=lambda i: depth[i])[-2:]
+        b1, b2 = uv[i0], uv[i1]
         rail = Polygon([
             b1, b2,
             (b2[0] + n[0] * KEY_RAIL, b2[1] + n[1] * KEY_RAIL),
@@ -296,6 +315,57 @@ def build_L(delta, qr_geom, title_geom, sub_geom, keys):
 def stock_box():
     t = trimesh.transformations.translation_matrix([L / 2, L / 2, H / 2])
     return trimesh.creation.box(extents=[L, L, H], transform=t)
+
+
+# ------------------------------ face fidelity --------------------------------
+FACE_SPECS = (("front", 1, 0.0, +1), ("right", 0, L, -1),
+              ("back", 1, L, -1), ("left", 0, 0.0, +1))
+
+
+def face_key_profile(mesh, zs, eps=1e-4):
+    """Lateral extent of material at each side face, height by height.
+
+    All four faces of a U3T must show the same dovetail -- that is the premise of
+    the whole object, and until now nothing in this suite tested it. An anchor
+    rail that broke the surface of two faces by up to 0.56 mm shipped because of
+    that gap.
+
+    The probe sits eps inside the face and must stay there: the key flanks lean,
+    so measuring even 0.01 mm deep already reads 0.06 mm wider on the two faces
+    d leans out of than on the two it leans into. That is the lean, not a defect.
+    """
+    prof = {}
+    for name, ax, fv, sgn in FACE_SPECS:
+        lat, rows = 1 - ax, []
+        for z in zs:
+            sec = mesh.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+            lo = hi = None
+            if sec is not None:
+                to2d = np.array([[1, 0, 0, 0], [0, 1, 0, 0],
+                                 [0, 0, 1, -z], [0, 0, 0, 1]], float)
+                p2, _ = sec.to_2D(to_2D=to2d)
+                a, b = [0.0, 0.0], [0.0, 0.0]
+                a[ax] = b[ax] = fv + sgn * eps
+                a[lat], b[lat] = -10.0, L + 10.0
+                line = LineString([tuple(a), tuple(b)])
+                xs = []
+                for pg in p2.polygons_full:
+                    it = pg.intersection(line)
+                    for g in getattr(it, "geoms", [it]):
+                        if not g.is_empty and g.geom_type == "LineString":
+                            xs.extend(np.asarray(g.coords)[:, lat])
+                if xs:
+                    lo, hi = float(min(xs)), float(max(xs))
+            rows.append((lo, hi))
+        prof[name] = rows
+    return prof
+
+
+def nominal_half_width(z):
+    """Half-width of the designed dovetail on the face, at height z."""
+    if z <= KEY_NECK_Z:
+        return KEY_HW0
+    return KEY_HW0 + (KEY_HW1 - KEY_HW0) * (z - KEY_NECK_Z) / (KEY_Z1 - KEY_NECK_Z)
 
 
 # --------------------------------- build -------------------------------------
@@ -353,6 +423,30 @@ def main():
                             bodies=bodies, bounds=bnd)
         print(f"{name}: watertight={wt} winding={wc} bodies={bodies} volume={vol:.0f} mm^3 "
               f"bounds={np.round(m.bounds, 2).tolist()} -> {'PASS' if ok else 'FAIL'}")
+
+    # the four faces must show the same dovetail, or it is not this puzzle
+    zs = np.arange(BAND_Z + 0.5, KEY_Z1 - CLR - 0.05, 0.1)
+    prof = face_key_profile(bottom, zs)
+    spread = 0.0
+    dev = 0.0
+    for i, z in enumerate(zs):
+        vals = [prof[nm][i] for nm, *_ in FACE_SPECS]
+        if any(v[0] is None for v in vals):
+            spread = float("inf")
+            continue
+        los = [v[0] for v in vals]
+        his = [v[1] for v in vals]
+        spread = max(spread, max(los) - min(los), max(his) - min(his))
+        hw = nominal_half_width(z)
+        for lo, hi in vals:
+            dev = max(dev, abs(lo - (L / 2 - hw)), abs(hi - (L / 2 + hw)))
+    face_ok = spread <= 0.05
+    print(f"face fidelity: spread between the four faces {spread:.3f} mm -> "
+          f"{'PASS' if face_ok else 'FAIL'}")
+    print(f"               widest gap to the nominal trapezoid {dev:.3f} mm "
+          f"(the {CLR:.2f} clearance, read horizontally across an oblique flank)")
+    report["face_spread_mm"] = spread
+    report["face_deviation_mm"] = dev
 
     both = np.vstack([bottom.bounds, top.bounds])
     env = [both.min(axis=0).tolist(), both.max(axis=0).tolist()]

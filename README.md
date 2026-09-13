@@ -106,14 +106,15 @@ Each generator writes its STLs to `stl/`, its report to `verification/`, and pri
 verification suite as it goes:
 
 ```
-bottom: watertight=True winding=True bodies=1 volume=89932 mm^3 ... -> PASS
-top:    watertight=True winding=True bodies=1 volume=56138 mm^3 ... -> PASS
+bottom: watertight=True winding=True bodies=1 volume=90202 mm^3 ... -> PASS
+top:    watertight=True winding=True bodies=1 volume=55874 mm^3 ... -> PASS
+face fidelity: spread between the four faces 0.001 mm -> PASS
 assembled overlap: 0.000000 mm^3 -> PASS
 slide along d, t= 0.05: overlap=0.000000 -> PASS
 ...
 slide along d, t=   40: overlap=0.000000 -> PASS
-control (straight up), t=1.0: overlap=61.126 mm^3 -> PASS (locks)
-control (flat diagonal slide), t=1.0: overlap=341.060 mm^3 -> PASS (locks)
+control (straight up), t=1.0: overlap=62.963 mm^3 -> PASS (locks)
+control (flat diagonal slide), t=1.0: overlap=344.802 mm^3 -> PASS (locks)
 ```
 
 Nothing else is needed to print the object — but if you want to regenerate the pictures too, see
@@ -166,7 +167,7 @@ object — including its proof — is rebuilt.
 | `KEY_Z0`, `KEY_Z1` | 7.5, 11.5 | bottom and top of the dovetail key |
 | `KEY_NECK_Z` | 8.3 | straight neck below the flare (manufacturability, see below) |
 | `KEY_HW0`, `KEY_HW1` | 6.0, 10.0 | key half-width at the band and at the top (it flares → undercut) |
-| `KEY_RAIL` | 8.0 | length of the internal anchor rail behind each key |
+| `KEY_RAIL` | 6.0 | how far the internal anchor rail runs in behind each key |
 | `MIN_FEATURE` | 0.55 | minimum printable wall/stroke enforced on the interface artwork |
 | `PLAT_*` | 7.0 … 11.0, ±30/34 | the plateau frustum that carries the payload |
 | `QR_BOX`, `TITLE_BOX`, `SUB_BOX` | — | where the payload sits, in sheared plan coordinates |
@@ -181,6 +182,14 @@ Two rules constrain the numbers, and both were learned the hard way:
 * **Anchor whatever the crop can orphan.** Each key continues inward as a solid rail, unioned in
   *before* the stock box crops the leaning prism. Skip this and the visible tabs become watertight,
   collision-free, and attached to nothing.
+* **Anchor it on the inboard edge.** As z runs over the key, the side face sweeps a strip of the
+  sheared plan — the *face shadow*. Whatever the footprint puts inside that strip is what the face
+  shows; whatever it puts beyond it, on the inboard side, is free. So the rail starts at the
+  trapezoid edge lying furthest inside the block, and **that is not the same edge on every face**:
+  **d** leans into two of them and out of the other two, making it the key waist on one pair and
+  the full flare width on the other. Anchor all four on the waist — the obvious reading — and two
+  of the keys end up with the flare cantilevered over nothing. That shipped once, and came back
+  worn.
 
 ### Making your own
 
@@ -205,17 +214,18 @@ generator attacks its own output before it exits, and writes the results to `ver
 
 | check | straight edition | rotation edition |
 |---|---|---|
-| bottom part watertight, consistent winding | yes — 89 932 mm³ | yes — 88 380 mm³ |
-| top part watertight, consistent winding | yes — 56 138 mm³ | yes — 57 572 mm³ |
+| bottom part watertight, consistent winding | yes — 90 202 mm³ | yes — 88 380 mm³ |
+| top part watertight, consistent winding | yes — 55 874 mm³ | yes — 57 572 mm³ |
 | **connected bodies per part** | 1 and 1 | 1 and 1 |
+| **face fidelity** — do the four sides really match? | agree to 0.001 mm | not yet checked |
 | assembly envelope | exactly 100 × 100 × 15 | exactly 100 × 100 × 15 |
 | assembled overlap | 0.000000 mm³ | 0.000000 mm³ |
 | overlap through the full opening motion | 0.000000 mm³ at 14 stations, t = 0.05 … 40 mm | 0.000000 mm³ at 12 stations, θ = 0.05° … 25° |
-| **control** — pull straight up, 1 / 2 mm | collides: 61.1 / 102.8 mm³ | collides: 128.5 / 227.6 mm³ |
-| **control** — flat diagonal slide, 1 / 2 mm | collides: 341.1 / 863.3 mm³ | collides: 416.3 / 926.1 mm³ |
+| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 128.5 / 227.6 mm³ |
+| **control** — flat diagonal slide, 1 / 2 mm | collides: 344.8 / 882.2 mm³ | collides: 416.3 / 926.1 mm³ |
 | **control** — the *other* edition's move | — | collides: 282.1 mm³ (straight slide, 2 mm) |
 | **control** — reverse rotation, 1° | — | collides: 21 424 mm³ |
-| thin-feature scan (`dfm_scan.py`) | no free-standing feature below 0.5 mm | no free-standing feature below 0.5 mm |
+| thin-feature scan (`dfm_scan.py`) | 3.31 mm² total, worst patch 0.27 mm² | 14.45 mm² total, worst patch 1.55 mm² — see below |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -246,11 +256,23 @@ slice by 0.249 mm, and report whatever disappears:
 python dfm_scan.py
 ```
 
-Both top parts come back completely clean. The bottom parts report a handful of patches, all of
-them on the sloped edges where the key flanks meet the outer faces: those are tapering edges of
-solid material, backed by full-thickness material immediately behind — a chamfer, not a wall. They
-print as a slightly rounded lip edge, with no consequence for fit or strength. Every flush dovetail
-outline in this family has them.
+For the straight edition both parts come back with nothing worse than 0.27 mm² patches, all of
+them where a flared flank runs out into its own side face. Those are corners between two planes the
+design fixes — tapering edges of solid material with full thickness immediately behind, a chamfer
+rather than a wall. They print as a slightly rounded lip and every flush dovetail in this family
+has them.
+
+It is worth being precise about that claim, because an earlier version of this file made it about a
+feature it did not fit. The first printed pair had, on two of its four keys, a 0.2 mm ledge running
+16 mm across with *nothing* behind it — a cantilever, not a chamfer — and it wore in service. The
+scan had reported it, at 2.55 mm² per patch, and it was waved through under the sentence above.
+Re-anchoring the rails (the third design rule) replaced it with 6.2 mm of solid material and took
+the bottom part from 15.21 mm² of thin features to 3.31 mm². The threshold in `dfm_scan.py` is now
+0.10 mm², low enough that nothing in that class can be mistaken for a chamfer again.
+
+**The rotation edition still has this defect** — 1.55 mm² patches on two of its faces. Its keys
+predate the rule, and fixing them means computing the face shadow through the bend map rather than
+a straight offset. Print the straight edition for anything that will be handled.
 
 ---
 

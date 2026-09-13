@@ -2,7 +2,7 @@
   "bottom": {
     "watertight": true,
     "winding": true,
-    "volume_mm3": 89931.9,
+    "volume_mm3": 90201.9,
     "bodies": 1,
     "bounds": [
       [
@@ -20,7 +20,7 @@
   "top": {
     "watertight": true,
     "winding": true,
-    "volume_mm3": 56138.2,
+    "volume_mm3": 55873.5,
     "bodies": 1,
     "bounds": [
       [
@@ -35,6 +35,8 @@
       ]
     ]
   },
+  "face_spread_mm": 0.0005566561206293841,
+  "face_deviation_mm": 0.44424257195206707,
   "envelope": [
     [
       0.0,
@@ -66,9 +68,9 @@
   },
   "separation_pass": true,
   "negative_controls_mm3": {
-    "straight up t=1.0": 61.125633729221896,
-    "straight up t=2.0": 102.7727691283435,
-    "flat diagonal slide t=1.0": 341.0596806782608,
-    "flat diagonal slide t=2.0": 863.286907505843
+    "straight up t=1.0": 62.962571085865726,
+    "straight up t=2.0": 108.4881318082583,
+    "flat diagonal slide t=1.0": 344.80220427122975,
+    "flat diagonal slide t=2.0": 882.215823788436
   }
 }

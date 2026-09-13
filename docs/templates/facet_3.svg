@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="106.57mm" height="31.94mm" viewBox="0 0 106.57 31.94">
+  <!-- U3T rotation edition, canvas facet 3. 1 user unit = 1 mm, origin top left. -->
+  <!-- x runs along the rotation axis; y is radial, and the top edge of the shape is the riser. -->
+  <g id="template" fill="none" stroke-width="0.12">
+    <line x1="0.00" y1="0" x2="0.00" y2="31.94" stroke="#ececec"/>
+    <line x1="5.00" y1="0" x2="5.00" y2="31.94" stroke="#ececec"/>
+    <line x1="10.00" y1="0" x2="10.00" y2="31.94" stroke="#ececec"/>
+    <line x1="15.00" y1="0" x2="15.00" y2="31.94" stroke="#ececec"/>
+    <line x1="20.00" y1="0" x2="20.00" y2="31.94" stroke="#ececec"/>
+    <line x1="25.00" y1="0" x2="25.00" y2="31.94" stroke="#ececec"/>
+    <line x1="30.00" y1="0" x2="30.00" y2="31.94" stroke="#ececec"/>
+    <line x1="35.00" y1="0" x2="35.00" y2="31.94" stroke="#ececec"/>
+    <line x1="40.00" y1="0" x2="40.00" y2="31.94" stroke="#ececec"/>
+    <line x1="45.00" y1="0" x2="45.00" y2="31.94" stroke="#ececec"/>
+    <line x1="50.00" y1="0" x2="50.00" y2="31.94" stroke="#ececec"/>
+    <line x1="55.00" y1="0" x2="55.00" y2="31.94" stroke="#ececec"/>
+    <line x1="60.00" y1="0" x2="60.00" y2="31.94" stroke="#ececec"/>
+    <line x1="65.00" y1="0" x2="65.00" y2="31.94" stroke="#ececec"/>
+    <line x1="70.00" y1="0" x2="70.00" y2="31.94" stroke="#ececec"/>
+    <line x1="75.00" y1="0" x2="75.00" y2="31.94" stroke="#ececec"/>
+    <line x1="80.00" y1="0" x2="80.00" y2="31.94" stroke="#ececec"/>
+    <line x1="85.00" y1="0" x2="85.00" y2="31.94" stroke="#ececec"/>
+    <line x1="90.00" y1="0" x2="90.00" y2="31.94" stroke="#ececec"/>
+    <line x1="95.00" y1="0" x2="95.00" y2="31.94" stroke="#ececec"/>
+    <line x1="100.00" y1="0" x2="100.00" y2="31.94" stroke="#ececec"/>
+    <line x1="105.00" y1="0" x2="105.00" y2="31.94" stroke="#ececec"/>
+    <line x1="0" y1="0.00" x2="106.57" y2="0.00" stroke="#ececec"/>
+    <line x1="0" y1="5.00" x2="106.57" y2="5.00" stroke="#ececec"/>
+    <line x1="0" y1="10.00" x2="106.57" y2="10.00" stroke="#ececec"/>
+    <line x1="0" y1="15.00" x2="106.57" y2="15.00" stroke="#ececec"/>
+    <line x1="0" y1="20.00" x2="106.57" y2="20.00" stroke="#ececec"/>
+    <line x1="0" y1="25.00" x2="106.57" y2="25.00" stroke="#ececec"/>
+    <line x1="0" y1="30.00" x2="106.57" y2="30.00" stroke="#ececec"/>
+    <path d="M 6.000,13.652 L 9.550,10.749 L 15.298,6.000 L 91.273,6.000 L 96.489,10.313 L 100.571,13.652 L 97.731,15.855 L 98.170,15.855 L 94.982,18.309 L 91.526,20.937 L 15.045,20.937 L 12.171,18.752 L 8.402,15.855 L 8.841,15.855 L 6.000,13.652 Z" stroke="#c0392b" stroke-width="0.25"/>
+    <path d="M 7.605,13.631 L 9.454,15.065 L 9.529,15.130 L 9.598,15.201 L 9.659,15.280 L 9.712,15.363 L 9.757,15.452 L 9.792,15.545 L 9.818,15.641 L 9.826,15.689 L 12.779,17.958 L 15.382,19.937 L 91.189,19.937 L 94.374,17.514 L 96.746,15.689 L 96.754,15.641 L 96.780,15.545 L 96.816,15.452 L 96.860,15.364 L 96.913,15.280 L 96.974,15.201 L 97.043,15.130 L 97.118,15.065 L 98.966,13.631 L 95.856,11.087 L 95.852,11.084 L 90.913,7.000 L 15.658,7.000 L 10.187,11.520 L 10.183,11.523 L 7.605,13.631 Z" stroke="#8FB0D8" stroke-width="0.15" stroke-dasharray="1.2,1.2"/>
+    <text x="6.00" y="30.54" font-family="sans-serif" font-size="2.4" fill="#7d8288" stroke="none">facet 3 of 5 &#183; 94.6 &#215; 14.9 mm &#183; tilt 37.0&#176; &#183; grid 5 mm &#183; min feature 0.55 mm &#183; dashed line = 1 mm safe margin</text>
+  </g>
+  <g id="artwork">
+    <!-- draw here: closed filled paths only, nothing under 0.55 mm -->
+  </g>
+</svg>

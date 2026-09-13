@@ -16,6 +16,11 @@ networkx>=3.0          # [3.6.1]   mesh graph operations in trimesh
 qrcode>=7.4            # [8.2]     the hidden payload
 matplotlib>=3.7        # [3.10.8]  glyph outlines for the engraved text; diagrams
 
+# --- drawing templates and artwork import: tools/facet_templates.py,
+#     tools/svg_content.py ---
+svgelements>=1.9      # [1.9.6]   reads artwork SVG, resolving units and transforms
+lxml>=4.9             # [6.0.2]   strips the template layer before parsing
+
 # --- figures and article tooling: tools/ ---
 pillow>=10.0           # [12.3.0]  flatten / crop / montage the Blender renders
 markdown>=3.4          # [3.10.2]  article markdown -> pasteable HTML

@@ -55,10 +55,69 @@ KEY_NECK_ZR = 8.8                        # neck before the flare: the shallow (f
                                          # starts at 0.44 x 1.3 = 0.57 mm depth
 KEY_HW0R, KEY_HW1R = 6.0, 10.0           # same widths as the straight edition
 KEY_RAIL_R = 8.0
-PLAT_TOP_ZR = 11.0                       # plateau top (real plane)
-PLAT_SQ = (20.0, 20.0, 80.0, 80.0)       # plateau square in REAL plan at z=11
+# ---- the interface plane ----------------------------------------------------
+# Same reasoning as the straight edition, with one piece of luck. The orbit
+# direction -- the local mating direction here -- varies a lot across the block,
+# from 27.6 deg off vertical at one corner to 55.8 deg at the other. But along
+# the (1, 1) diagonal it is exactly constant at 37.64 deg, because points on that
+# line share the same perpendicular radius from the axis. So a single flat plane
+# CAN be normal to the motion along the whole length of a strip laid on that
+# diagonal -- the other diagonal from the straight edition, whose strip runs
+# along (1, -1).
+PLAT_TILT_R = 25.0                       # deg; PLAT_TILT_PERP_R is exactly normal
+PLAT_ZR = 11.0                           # z at the middle of the band
+PLAT_Z_LO_R, PLAT_Z_HI_R = 8.5, 13.5     # the slice of slab it has to stay inside
+PLAT_MARGIN_R = 14.0                     # keep the band this far from the faces
+
+CONTENT_R = False                        # relief: off while the content is redesigned
 QR_TOP_ZR = 12.2
 TXT_TOP_ZR = 12.0
+
+
+def orbit_dir(P):
+    """Unit orbit velocity at a real point: the local mating direction."""
+    P = np.asarray(P, dtype=float)
+    rv = P - C
+    rp = rv - (rv @ E) * E
+    v = np.cross(E, rp)
+    return v / np.linalg.norm(v)
+
+
+_V_MID = orbit_dir([50.0, 50.0, PLAT_ZR])
+PLAT_TILT_PERP_R = np.degrees(np.arccos(_V_MID[2]))
+_TILT_R = np.radians(PLAT_TILT_R)
+TILT_SR = np.tan(_TILT_R) / SQ2                  # dz per unit of (x - y)
+PLAT_WID_R = (min(PLAT_Z_HI_R - PLAT_ZR, PLAT_ZR - PLAT_Z_LO_R) / np.tan(_TILT_R)
+              if PLAT_TILT_R > 1e-9 else 30.0)
+PLAT_WID_R = min(PLAT_WID_R, 30.0)
+PLAT_LEN_R = (L / 2 - PLAT_MARGIN_R) * SQ2 - PLAT_WID_R
+PLAT_N_R = np.array([TILT_SR, -TILT_SR, 1.0])
+PLAT_N_R /= np.linalg.norm(PLAT_N_R)             # the tilted plane's normal
+
+
+def plat_plane_zr(x, y):
+    """Height of the interface plane over a real plan point."""
+    return PLAT_ZR - TILT_SR * (x - y)
+
+
+def plat_poly_r(half_len, half_wid):
+    """The band as a REAL-plan polygon: long axis (1, 1), short axis (1, -1)."""
+    pts = []
+    for sp, sq in ((-1, -1), (-1, 1), (1, 1), (1, -1)):
+        px, qy = sp * half_len, sq * half_wid
+        pts.append((L / 2 + (px + qy) / SQ2, L / 2 + (px - qy) / SQ2))
+    return Polygon(pts)
+
+
+def cap_plane(mesh, origin, normal):
+    """Intersect a solid with the half-space under an arbitrary plane."""
+    n = np.asarray(normal, dtype=float)
+    n = n / np.linalg.norm(n)
+    box = trimesh.creation.box(extents=[500.0, 500.0, 500.0])
+    box.apply_translation([0.0, 0.0, -250.0])            # top face on local z = 0
+    box.apply_transform(trimesh.geometry.align_vectors([0.0, 0.0, 1.0], n))
+    box.apply_translation(np.asarray(origin, dtype=float))
+    return trimesh.boolean.intersection([mesh, box], engine="manifold")
 
 
 def preimage_plan(P):
@@ -224,8 +283,7 @@ def key_footprints_rot(delta):
     return out
 
 
-def build_L_rot(delta, qr_geom, title_geom, sub_geom):
-    lift11 = lambda x, y: (x, y, PLAT_TOP_ZR)
+def build_L_rot(delta, art=()):
     meshes = []
     # band slab: below the band the interface is the exact flat plane z = 7.5+delta,
     # so the slab is a plain straight box (bending it would only add cap-sag error;
@@ -235,32 +293,42 @@ def build_L_rot(delta, qr_geom, title_geom, sub_geom):
     # keys + rails
     for name, fp in key_footprints_rot(delta):
         meshes.append(cap(prism(fp, 1, 28, 14), KEY_Z1R + delta))
-    # plateau (orbit-swept curtain walls, flat top at z = 11)
-    plat = geom_preimage(buffered(shapely.box(*PLAT_SQ), delta), lift11, seg=2.0)
-    meshes.append(cap(prism(plat, 1, 28, 14), PLAT_TOP_ZR + delta))
-    # QR and text reliefs (footprints pre-imaged from the z = 11 content plane;
-    # DFM-safe asymmetric clearance via content_offset)
-    meshes.append(cap(prism(geom_preimage(content_offset(qr_geom, delta), lift11),
-                            6, 26, 10), QR_TOP_ZR + delta))
-    for tg in (title_geom, sub_geom):
-        meshes.append(cap(prism(geom_preimage(content_offset(tg, delta), lift11),
-                                6, 26, 10), TXT_TOP_ZR + delta))
+    # the tilted interface band: orbit-swept curtain walls, capped by the plane
+    plat_lift = lambda x, y: (x, y, plat_plane_zr(x, y))
+    plat = geom_preimage(buffered(plat_poly_r(PLAT_LEN_R, PLAT_WID_R), delta),
+                         plat_lift, seg=2.0)
+    origin = np.array([L / 2, L / 2, PLAT_ZR]) + PLAT_N_R * delta
+    meshes.append(cap_plane(prism(plat, 1, 28, 14), origin, PLAT_N_R))
+    # relief on the band, when there is any
+    for geom, z_top in art:
+        rel = geom_preimage(content_offset(geom, delta), plat_lift)
+        meshes.append(cap_plane(prism(rel, 6, 26, 10),
+                                origin + PLAT_N_R * (z_top - PLAT_ZR), PLAT_N_R))
     return trimesh.boolean.union(meshes, engine="manifold")
 
 
 # --------------------------------- build -------------------------------------
 def main():
-    print("preparing 2D artwork (real plan)...")
-    qr_geom, qr_n, qr_cell = qr_geometry()
-    print(f"  QR: {qr_n}x{qr_n} modules, {qr_cell:.2f} mm/module")
-    title_geom = fit_into_box(text_geometry(TITLE), TITLE_BOX)
-    sub_geom = fit_into_box(text_geometry(SUBTITLE), SUB_BOX)
+    print(f"interface plane: {PLAT_TILT_R:.1f} deg from horizontal "
+          f"({PLAT_TILT_PERP_R - PLAT_TILT_R:.1f} deg short of normal to the orbit)")
+    print(f"  band {2 * PLAT_LEN_R:.0f} x {2 * PLAT_WID_R / np.cos(_TILT_R):.1f} mm "
+          f"along the (1,1) diagonal")
+    art = []
+    if CONTENT_R:
+        print("preparing 2D artwork (real plan)...")
+        qr_geom, qr_n, qr_cell = qr_geometry()
+        print(f"  QR: {qr_n}x{qr_n} modules, {qr_cell:.2f} mm/module")
+        art = [(qr_geom, QR_TOP_ZR),
+               (fit_into_box(text_geometry(TITLE), TITLE_BOX), TXT_TOP_ZR),
+               (fit_into_box(text_geometry(SUBTITLE), SUB_BOX), TXT_TOP_ZR)]
+    else:
+        print("content: none (interface left blank)")
 
     B = stock_box()
     print("building lower solid (bottom offset)...")
-    L_lo = build_L_rot(-CLR, qr_geom, title_geom, sub_geom)
+    L_lo = build_L_rot(-CLR, art)
     print("building lower solid (top offset)...")
-    L_hi = build_L_rot(+CLR, qr_geom, title_geom, sub_geom)
+    L_hi = build_L_rot(+CLR, art)
 
     print("boolean: bottom / top ...")
     bottom = trimesh.boolean.intersection([B, L_lo], engine="manifold")

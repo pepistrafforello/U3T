@@ -58,16 +58,32 @@ KEY_RAIL = 6.0       # interior anchor rail behind each key (plan length).
 
 MIN_FEATURE = 0.55   # FDM min printable wall/stroke (Xometry: > 0.5 mm)
 
-PLAT_TOP_Z = 11.0    # plateau top
-PLAT_TOP_HW = 30.0   # plateau top half-width (sheared space, centered at 50,50)
-PLAT_BASE_Z = 7.0    # frustum base (below band so it fuses with the slab)
-PLAT_BASE_HW = 34.0  # 45-degree ramps: (34.0-30.0)/(11.0-7.0) = 1
+# ---- the interface plane ----------------------------------------------------
+# The parting surface in the middle of the block is where the content lives, and
+# a horizontal one costs twice over. It sits 44.7 deg away from perpendicular to
+# d, so every feature on it is foreshortened by cos(44.7) = 0.71 across the shear
+# direction; and because relief walls must run parallel to d, each raised island
+# drifts 0.99 mm sideways per mm of height. A 1.24 mm QR module with 1.2 mm of
+# relief therefore ends up with 0.05 mm of itself standing over its own base.
+#
+# Tilting the plane toward perpendicular removes both. What it costs is width: a
+# tilted plane runs out of a 15 mm slab fast, so the canvas stops being a square
+# and becomes a band along the level diagonal -- the one direction in which the
+# tilted plane stays at constant height.
+PLAT_TILT = 30.0     # deg from horizontal; PLAT_TILT_PERP is exactly normal to d
+PLAT_Z = 11.0        # z at the middle of the band
+PLAT_Z_LO = 8.5      # the band has to stay inside this slice of the slab:
+PLAT_Z_HI = 13.5     # above the seam, below the top face, with material either side
+PLAT_RAMP = 7.0      # ramp run from the band edge down to the base
+PLAT_BASE_Z = 7.0    # base sits below the seam, so it fuses into the slab
+PLAT_MARGIN = 8.0    # keep the base this far from the side faces
 
-QR_TOP_Z = 12.2      # QR relief top (1.2 above plateau)
-TXT_TOP_Z = 12.0     # text relief top (1.0 above plateau)
-QR_BOX = (32.0, 41.0, 68.0, 77.0)     # (u0, v0, u1, v1) 36x36, toward back
+CONTENT = False      # QR + title relief: off while the content is redesigned
+QR_TOP_Z = 12.2      # relief heights, for when it comes back
+TXT_TOP_Z = 12.0
+QR_BOX = (32.0, 41.0, 68.0, 77.0)
 TITLE_BOX = (23.0, 29.0, 77.0, 36.5)
-SUB_BOX = (24.0, 21.8, 76.0, 28.0)    # taller than v1 so nominal strokes stay > MIN_FEATURE
+SUB_BOX = (24.0, 21.8, 76.0, 28.0)
 
 QR_PAYLOAD = "Congratulations Francesco! UofT '22"
 TITLE = "Francesco Strafforello"
@@ -78,6 +94,18 @@ FONT = FontProperties(family="DejaVu Sans", weight="bold")
 
 D = np.array([SHX, SHY, 1.0])
 D_HAT = D / np.linalg.norm(D)
+
+# the tilt that would put the interface plane exactly normal to d
+PLAT_TILT_PERP = np.degrees(np.arctan(np.hypot(SHX, SHY)))
+_TILT = np.radians(PLAT_TILT)
+TILT_S = np.tan(_TILT) / np.sqrt(2.0)          # dz per unit of (x + y)
+# how wide the band can be before it leaves the slab, as a horizontal projection
+PLAT_WID = (min(PLAT_Z_HI - PLAT_Z, PLAT_Z - PLAT_Z_LO) / np.tan(_TILT)
+            if PLAT_TILT > 1e-9 else 30.0)
+PLAT_WID = min(PLAT_WID, 30.0)
+# and how long, before the base of its ramps reaches a side face
+PLAT_LEN = ((L / 2 - PLAT_MARGIN) * np.sqrt(2.0)
+            - PLAT_RAMP - (PLAT_WID + PLAT_RAMP))
 
 SHEAR = np.array([
     [1, 0, SHX, 0],
@@ -275,22 +303,45 @@ def key_footprints():
     return quads
 
 
-def frustum_mesh(delta):
-    """Plateau frustum (sheared space) as convex hull of 8 points, offset by delta."""
-    hw_t = PLAT_TOP_HW + delta
-    hw_b = PLAT_BASE_HW + delta
-    zt = PLAT_TOP_Z + delta
-    zb = PLAT_BASE_Z  # base stays buried below the band
-    c = L / 2.0
-    pts = []
-    for s1 in (-1, 1):
-        for s2 in (-1, 1):
-            pts.append([c + s1 * hw_b, c + s2 * hw_b, zb])
-            pts.append([c + s1 * hw_t, c + s2 * hw_t, zt])
-    return trimesh.convex.convex_hull(np.array(pts))
+def plat_plane_z(x, y):
+    """Height of the interface plane over a real-space plan point."""
+    return PLAT_Z - TILT_S * (x + y - L)
 
 
-def build_L(delta, qr_geom, title_geom, sub_geom, keys):
+def plat_ring(half_len, half_wid, z=None):
+    """Corners of a band rectangle in REAL space, aligned to the plan diagonals.
+
+    The long axis is (1, -1): the level direction of the tilted plane, the one
+    along which it keeps a constant height. The short axis is (1, 1), where it
+    climbs at tan(PLAT_TILT) per millimetre and runs out of slab.
+    """
+    r2 = np.sqrt(2.0)
+    out = []
+    for sp, sq in ((-1, -1), (-1, 1), (1, 1), (1, -1)):
+        px, qy = sp * half_len, sq * half_wid
+        x = L / 2 + (px + qy) / r2
+        y = L / 2 + (qy - px) / r2
+        out.append([x, y, plat_plane_z(x, y) if z is None else z])
+    return np.array(out)
+
+
+def plateau_mesh(delta):
+    """The tilted interface band, as a platform, in SHEARED space.
+
+    On the tilted top the clearance has to be taken along the plane normal, which
+    is delta / cos(tilt) measured vertically.
+    """
+    top = plat_ring(PLAT_LEN + delta, PLAT_WID + delta)
+    top[:, 2] += delta / np.cos(_TILT)
+    base = plat_ring(PLAT_LEN + PLAT_RAMP + delta,
+                     PLAT_WID + PLAT_RAMP + delta, z=PLAT_BASE_Z)
+    pts = np.vstack([top, base])
+    pts[:, 0] -= SHX * pts[:, 2]
+    pts[:, 1] -= SHY * pts[:, 2]
+    return trimesh.convex.convex_hull(pts)
+
+
+def build_L(delta, keys, art=()):
     """Solid below the interface, in sheared space, offset by delta (signed)."""
     meshes = []
     # base slab up to the band
@@ -300,16 +351,27 @@ def build_L(delta, qr_geom, title_geom, sub_geom, keys):
     for name, q in keys:
         qb = buffered(q, delta)
         meshes += extrude(qb, BAND_Z - 1.0, KEY_Z1 + delta)
-    # plateau frustum (45-degree ramps)
-    meshes.append(frustum_mesh(delta))
-    # QR relief (DFM-safe asymmetric clearance, see content_offset)
-    meshes += extrude(content_offset(qr_geom, delta), PLAT_TOP_Z - 0.5, QR_TOP_Z + delta)
-    # text reliefs
-    meshes += extrude(content_offset(title_geom, delta), PLAT_TOP_Z - 0.5, TXT_TOP_Z + delta)
-    meshes += extrude(content_offset(sub_geom, delta), PLAT_TOP_Z - 0.5, TXT_TOP_Z + delta)
+    # the tilted interface band
+    meshes.append(plateau_mesh(delta))
+    # relief on it, when there is any (DFM-safe clearance, see content_offset)
+    for geom, z_top in art:
+        meshes += extrude(content_offset(geom, delta), PLAT_Z - 0.5, z_top + delta)
     solid = trimesh.boolean.union(meshes, engine="manifold")
     solid.apply_transform(SHEAR)  # sheared space -> real space
     return solid
+
+
+def plateau_plan(delta=0.0, base=False):
+    """Sheared-plan outline of the interface band -- its top face, or its base."""
+    if base:
+        ring = plat_ring(PLAT_LEN + PLAT_RAMP + delta,
+                         PLAT_WID + PLAT_RAMP + delta, z=PLAT_BASE_Z)
+    else:
+        ring = plat_ring(PLAT_LEN + delta, PLAT_WID + delta)
+        ring[:, 2] += delta / np.cos(_TILT)
+    ring[:, 0] -= SHX * ring[:, 2]
+    ring[:, 1] -= SHY * ring[:, 2]
+    return ring[:, :2]
 
 
 def stock_box():
@@ -370,19 +432,33 @@ def nominal_half_width(z):
 
 # --------------------------------- build -------------------------------------
 def main():
-    print("preparing 2D artwork...")
-    qr_geom, qr_n, qr_cell = qr_geometry()
-    print(f"  QR: {qr_n}x{qr_n} modules, {qr_cell:.2f} mm/module")
-    title_geom = fit_into_box(text_geometry(TITLE), TITLE_BOX)
-    sub_geom = fit_into_box(text_geometry(SUBTITLE), SUB_BOX)
+    top = plat_ring(PLAT_LEN, PLAT_WID)
+    band_w = 2 * PLAT_WID / np.cos(_TILT)
+    print(f"interface plane: {PLAT_TILT:.1f} deg from horizontal "
+          f"({PLAT_TILT_PERP - PLAT_TILT:.1f} deg short of normal to d)")
+    print(f"  band {2 * PLAT_LEN:.0f} x {band_w:.1f} mm along the plan diagonal, "
+          f"z {top[:, 2].min():.2f} .. {top[:, 2].max():.2f}")
+    print(f"  relief drift {np.tan(np.radians(PLAT_TILT_PERP - PLAT_TILT)):.3f} mm "
+          f"per mm of height (was {np.hypot(SHX, SHY):.3f})")
+
+    art = []
+    if CONTENT:
+        print("preparing 2D artwork...")
+        qr_geom, qr_n, qr_cell = qr_geometry()
+        print(f"  QR: {qr_n}x{qr_n} modules, {qr_cell:.2f} mm/module")
+        art = [(qr_geom, QR_TOP_Z),
+               (fit_into_box(text_geometry(TITLE), TITLE_BOX), TXT_TOP_Z),
+               (fit_into_box(text_geometry(SUBTITLE), SUB_BOX), TXT_TOP_Z)]
+    else:
+        print("content: none (interface left blank)")
     keys = key_footprints()
 
     B = stock_box()
 
     print("building lower solid (bottom offset)...")
-    L_lo = build_L(-CLR, qr_geom, title_geom, sub_geom, keys)
+    L_lo = build_L(-CLR, keys, art)
     print("building lower solid (top offset)...")
-    L_hi = build_L(+CLR, qr_geom, title_geom, sub_geom, keys)
+    L_hi = build_L(+CLR, keys, art)
 
     print("boolean: bottom = stock INTERSECT L(-clr)")
     bottom = trimesh.boolean.intersection([B, L_lo], engine="manifold")

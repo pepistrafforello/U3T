@@ -6,7 +6,7 @@ A while ago I wrote about a puzzle that had been living rent-free in my head for
 years — a block of two woods, mated so perfectly there is no air between them, showing the same
 dovetail on all four faces, that nonetheless comes apart in one movement. The story of how it got
 solved, generalised into an infinite family, and finally turned into a printable object with a QR
-code hidden inside is here: [**The Unnamed 3D Thingy**](PASTE-LINK-TO-PART-ONE).
+code hidden inside is here: [**The Unnamed 3D Thingy**](https://medium.com/@pepi.strafforello/the-unnamed-3d-thingy-16e8ca82ebd0).
 
 ![the block, identical from every side](images/o_puzzle.png)
 *The object, for anyone arriving here first. All four sides look like this. The dovetails

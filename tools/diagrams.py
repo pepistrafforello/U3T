@@ -89,16 +89,18 @@ ax.add_patch(MplPoly([(0, 0), (100, 0), (100, 100), (0, 100)], closed=True,
 sh = 15 * 0.7
 ax.add_patch(MplPoly([(-sh, -sh), (100 - sh, -sh), (100 - sh, 100 - sh), (-sh, 100 - sh)],
                      closed=True, facecolor="none", edgecolor="#9aa0a6", ls=(0, (5, 4)), lw=1.2))
-for hw, col in ((g.PLAT_BASE_HW, "#dde6f2"), (g.PLAT_TOP_HW, "#c6d6ea")):
-    ax.add_patch(MplPoly([(50 - hw, 50 - hw), (50 + hw, 50 - hw), (50 + hw, 50 + hw),
-                          (50 - hw, 50 + hw)], closed=True, facecolor=col,
-                         edgecolor="#7d8aa0", lw=0.9))
+for ring, col in ((g.plateau_plan(base=True), "#dde6f2"),
+                  (g.plateau_plan(), "#c6d6ea")):
+    ax.add_patch(MplPoly(ring, closed=True, facecolor=col, edgecolor="#7d8aa0", lw=0.9))
 for name, q in g.key_footprints():
     ax.add_patch(MplPoly(np.asarray(q.exterior.coords), closed=True,
                          facecolor="#e8b64c", edgecolor="#8a6d2f", lw=1.0))
-qr_geom, _, _ = g.qr_geometry()
-for geom in [qr_geom, g.fit_into_box(g.text_geometry(g.TITLE), g.TITLE_BOX),
-             g.fit_into_box(g.text_geometry(g.SUBTITLE), g.SUB_BOX)]:
+_art = []
+if g.CONTENT:
+    qr_geom, _, _ = g.qr_geometry()
+    _art = [qr_geom, g.fit_into_box(g.text_geometry(g.TITLE), g.TITLE_BOX),
+            g.fit_into_box(g.text_geometry(g.SUBTITLE), g.SUB_BOX)]
+for geom in _art:
     for p in g.polys_of(geom):
         ax.add_patch(MplPoly(np.asarray(p.exterior.coords), closed=True,
                              facecolor="#41454c", edgecolor="none"))

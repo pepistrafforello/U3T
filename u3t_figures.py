@@ -217,23 +217,22 @@ sh = 15 * 0.7
 ax.add_patch(MplPoly([(-sh, -sh), (100 - sh, -sh), (100 - sh, 100 - sh), (-sh, 100 - sh)],
                      closed=True, facecolor="none", edgecolor="0.55", ls="--", lw=1.1))
 # plateau
-for hw, col in ((g.PLAT_BASE_HW, "#cdd8e8"), (g.PLAT_TOP_HW, "#b3c6de")):
-    ax.add_patch(MplPoly([(50 - hw, 50 - hw), (50 + hw, 50 - hw),
-                          (50 + hw, 50 + hw), (50 - hw, 50 + hw)], closed=True,
-                         facecolor=col, edgecolor="0.3", lw=0.8))
+for ring, col in ((g.plateau_plan(base=True), "#cdd8e8"),
+                  (g.plateau_plan(), "#b3c6de")):
+    ax.add_patch(MplPoly(ring, closed=True, facecolor=col, edgecolor="0.3", lw=0.8))
 # keys
 for name, q in g.key_footprints():
     xy = np.asarray(q.exterior.coords)
     ax.add_patch(MplPoly(xy, closed=True, facecolor="#e8b64c", edgecolor="0.2", lw=0.9))
 # QR + text footprints
-qr_geom, _, _ = g.qr_geometry()
-for p in g.polys_of(qr_geom):
+qr_geom, _, _ = g.qr_geometry() if g.CONTENT else (None, 0, 0)
+for p in (g.polys_of(qr_geom) if g.CONTENT else []):
     ax.add_patch(MplPoly(np.asarray(p.exterior.coords), closed=True,
                          facecolor="0.25", edgecolor="none"))
     for h in p.interiors:
         ax.add_patch(MplPoly(np.asarray(h.coords), closed=True,
                              facecolor="#b3c6de", edgecolor="none"))
-for txt, box in ((g.TITLE, g.TITLE_BOX), (g.SUBTITLE, g.SUB_BOX)):
+for txt, box in (((g.TITLE, g.TITLE_BOX), (g.SUBTITLE, g.SUB_BOX)) if g.CONTENT else ()):
     geom = g.fit_into_box(g.text_geometry(txt), box)
     for p in g.polys_of(geom):
         ax.add_patch(MplPoly(np.asarray(p.exterior.coords), closed=True,

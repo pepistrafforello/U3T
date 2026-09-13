@@ -72,7 +72,8 @@ docs/
   original-design-notes.pdf   the notes the project started from, years before it was finished
   figures/                    figures for the write-up (original/ = extracted from the PDF)
   article/medium-post.md      the article, in Medium's voice
-  article/images/             its renders (Blender/Cycles) and diagrams (matplotlib)
+  article/medium-followup.md  the follow-up: what the first printed pair got wrong
+  article/images/             their renders (Blender/Cycles) and diagrams (matplotlib)
 
 tools/
   prep_shots.py           poses the verified STLs and emits the shot list
@@ -80,6 +81,7 @@ tools/
   postprocess.py          flatten / crop / montage / sanity-check the renders
   diagrams.py             the clean 2D diagrams used by the article
   make_paste_html.py      article markdown -> HTML page you can paste into Medium
+  followup_figs.py        the follow-up article's two figures
   extract_pdf_figures.py  re-extracts docs/figures/original/ from the PDF
 ```
 
@@ -214,18 +216,18 @@ generator attacks its own output before it exits, and writes the results to `ver
 
 | check | straight edition | rotation edition |
 |---|---|---|
-| bottom part watertight, consistent winding | yes — 90 202 mm³ | yes — 88 380 mm³ |
-| top part watertight, consistent winding | yes — 55 874 mm³ | yes — 57 572 mm³ |
+| bottom part watertight, consistent winding | yes — 90 202 mm³ | yes — 89 182 mm³ |
+| top part watertight, consistent winding | yes — 55 874 mm³ | yes — 56 616 mm³ |
 | **connected bodies per part** | 1 and 1 | 1 and 1 |
-| **face fidelity** — do the four sides really match? | agree to 0.001 mm | not yet checked |
+| **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.008 mm |
 | assembly envelope | exactly 100 × 100 × 15 | exactly 100 × 100 × 15 |
 | assembled overlap | 0.000000 mm³ | 0.000000 mm³ |
 | overlap through the full opening motion | 0.000000 mm³ at 14 stations, t = 0.05 … 40 mm | 0.000000 mm³ at 12 stations, θ = 0.05° … 25° |
-| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 128.5 / 227.6 mm³ |
-| **control** — flat diagonal slide, 1 / 2 mm | collides: 344.8 / 882.2 mm³ | collides: 416.3 / 926.1 mm³ |
-| **control** — the *other* edition's move | — | collides: 282.1 mm³ (straight slide, 2 mm) |
-| **control** — reverse rotation, 1° | — | collides: 21 424 mm³ |
-| thin-feature scan (`dfm_scan.py`) | 3.31 mm² total, worst patch 0.27 mm² | 14.45 mm² total, worst patch 1.55 mm² — see below |
+| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 110.8 / 232.3 mm³ |
+| **control** — flat diagonal slide, 1 / 2 mm | collides: 344.8 / 882.2 mm³ | collides: 385.6 / 929.4 mm³ |
+| **control** — the *other* edition's move | — | collides: 297.1 mm³ (straight slide, 2 mm) |
+| **control** — reverse rotation, 1° | — | collides: 21 338 mm³ |
+| thin-feature scan (`dfm_scan.py`) | 3.31 mm² total, worst patch 0.27 mm² | 6.56 mm² total, worst patch 0.40 mm² |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -270,9 +272,17 @@ Re-anchoring the rails (the third design rule) replaced it with 6.2 mm of solid 
 the bottom part from 15.21 mm² of thin features to 3.31 mm². The threshold in `dfm_scan.py` is now
 0.10 mm², low enough that nothing in that class can be mistaken for a chamfer again.
 
-**The rotation edition still has this defect** — 1.55 mm² patches on two of its faces. Its keys
-predate the rule, and fixing them means computing the face shadow through the bend map rather than
-a straight offset. Print the straight edition for anything that will be handled.
+The rotation edition had the same defect, and worse: its faces disagreed by 0.93 mm. It now
+carries the rule too. Because its design plan comes from a bend map rather than a shear, the
+inboard direction there cannot be read off a normal vector — it is measured, by pre-imaging a point
+on the face and the same point 1 mm inside it. The rule then picked the **front and right** faces
+for flare-width anchoring, which are exactly the two `dfm_scan.py` had flagged, arrived at
+independently. Face spread 0.93 mm → 0.008 mm, worst patch 1.55 mm² → 0.40 mm².
+
+What is left on both editions, at 0.27–0.40 mm² a patch, is the corner where a flared flank runs
+out into its own face. Sample the material behind one and it grows 0.16 → 1.35 mm over a couple of
+millimetres of width: a solid wedge, which is what a chamfer is. That test — *is there material
+behind it* — is the one worth running on anything a thin-feature scan reports.
 
 ---
 
@@ -326,6 +336,7 @@ editor, images included.
 |---|---|
 | [`docs/The-Unnamed-3D-Thingy.md`](docs/The-Unnamed-3D-Thingy.md) | the complete write-up: the original notes, the proof, a step-by-step Autodesk Fusion walkthrough, the automated pipeline, the verification suite, printing, and the rotation edition |
 | [`docs/article/medium-post.md`](docs/article/medium-post.md) | the same story told as an article, for readers rather than builders |
+| [`docs/article/medium-followup.md`](docs/article/medium-followup.md) | the follow-up: the two keys the first printed pair got wrong, and the rule that was missing |
 | [`docs/original-design-notes.pdf`](docs/original-design-notes.pdf) | where it began: the unfinished notes, kept for provenance |
 
 ---

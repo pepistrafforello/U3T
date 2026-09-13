@@ -33,7 +33,7 @@ from shapely.ops import unary_union
 from u3t_generator import (
     L, H, BAND_Z, CLR, TITLE, SUBTITLE, SIGNATURE, TITLE_BOX, SUB_BOX,
     buffered, polys_of, text_geometry, fit_into_box, qr_geometry, stock_box,
-    clean_thin, content_offset,
+    clean_thin, content_offset, face_key_profile, FACE_SPECS,
 )
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -144,12 +144,58 @@ FACE_LIFT = {
     "back":  lambda t, z: (t, 100.0, z),
     "left":  lambda t, z: (0.0, t, z),
 }
-RAIL_RECT = {  # real-plan rails at band height, running inward from each face
-    "front": shapely.box(44, -1, 56, KEY_RAIL_R),
-    "right": shapely.box(100 - KEY_RAIL_R, 44, 101, 56),
-    "back":  shapely.box(44, 100 - KEY_RAIL_R, 56, 101),
-    "left":  shapely.box(-1, 44, KEY_RAIL_R, 56),
-}
+INWARD = {"front": (0.0, 1.0), "right": (-1.0, 0.0),
+          "back": (0.0, -1.0), "left": (1.0, 0.0)}
+
+
+def inward_plan_dir(name):
+    """Unit vector in the DESIGN plan that points into the block, for this face.
+
+    The bend map is not linear, so this is measured rather than assumed: take a
+    point in the middle of the face at band height and the same point 1 mm
+    inside, pre-image both, and normalise the difference. Over the 20 x 4.5 mm
+    of one key, with the axis 185 mm away, that direction is constant to well
+    under the clearance.
+    """
+    lift, n = FACE_LIFT[name], INWARD[name]
+    a = np.array(lift(50.0, BAND_Z), dtype=float)
+    b = a + np.array([n[0], n[1], 0.0])
+    q = preimage_plan(np.vstack([a, b]))
+    d = q[1] - q[0]
+    return d / np.linalg.norm(d)
+
+
+def anchor_edge(name):
+    """Which horizontal edge of the face trapezoid lies furthest INSIDE the block.
+
+    The straight edition's face-shadow rule, carried across the bend map. As z
+    runs over the key the side face sweeps a band of the design plan, and only
+    material inboard of it is invisible from outside; the rail therefore has to
+    start on whichever trapezoid edge sits furthest in. Because the orbits leave
+    the block through two of the four faces and enter through the other two,
+    that is the base edge on one pair and the flare's top edge on the other.
+    """
+    lift = FACE_LIFT[name]
+    q = preimage_plan(np.array([lift(50.0, KEY_Z0R), lift(50.0, KEY_Z1R)], float))
+    n = inward_plan_dir(name)
+    return "base" if q[0] @ n > q[1] @ n else "top"
+
+
+def rail_box(name, hw, depth):
+    """Real-plan rectangle, half-width hw, running `depth` inward from a face.
+
+    Its outer edge sits exactly in the face plane, so when it is pre-imaged at
+    the anchor edge's own height it butts that edge exactly -- same real points,
+    same pre-image, no sliver and no gap to bridge.
+    """
+    a, b = 50.0 - hw, 50.0 + hw
+    if name == "front":
+        return shapely.box(a, 0.0, b, depth)
+    if name == "back":
+        return shapely.box(a, 100.0 - depth, b, 100.0)
+    if name == "left":
+        return shapely.box(0.0, a, depth, b)
+    return shapely.box(100.0 - depth, a, 100.0, b)
 
 
 def key_footprints_rot(delta):
@@ -157,12 +203,24 @@ def key_footprints_rot(delta):
     trap2d = Polygon([(50 - KEY_HW0R, KEY_Z0R), (50 + KEY_HW0R, KEY_Z0R),
                       (50 + KEY_HW0R, KEY_NECK_ZR), (50 + KEY_HW1R, KEY_Z1R),
                       (50 - KEY_HW1R, KEY_Z1R), (50 - KEY_HW0R, KEY_NECK_ZR)])
-    plan_lift = lambda x, y: (x, y, BAND_Z)
     out = []
     for name, lift in FACE_LIFT.items():
-        trap = geom_preimage(buffered(trap2d, delta), lift, seg=1.0)
-        rail = geom_preimage(buffered(RAIL_RECT[name], delta), plan_lift, seg=1.0)
-        out.append((name, unary_union([trap, rail])))
+        tb = buffered(trap2d, delta)
+        trap = geom_preimage(tb, lift, seg=1.0)
+        # take the anchor edge off the OFFSET trapezoid, so the rail lands on it
+        # exactly at either clearance; a mitred offset moves a flare corner by
+        # more than delta, so these cannot be predicted from the nominal numbers
+        zz = [c[1] for c in tb.exterior.coords]
+        z_rail = min(zz) if anchor_edge(name) == "base" else max(zz)
+        xs = [c[0] for c in tb.exterior.coords if abs(c[1] - z_rail) < 1e-9]
+        hw = (max(xs) - min(xs)) / 2.0
+        rlift = (lambda zr: (lambda x, y: (x, y, zr)))(z_rail)
+        rail = geom_preimage(rail_box(name, hw, KEY_RAIL_R + delta), rlift, seg=1.0)
+        fp = unary_union([trap, rail])
+        if fp.geom_type != "Polygon":
+            raise ValueError(f"{name}: key footprint came apart into "
+                             f"{len(fp.geoms)} pieces")
+        out.append((name, fp))
     return out
 
 
@@ -250,6 +308,24 @@ def main():
         print(f"{name}: watertight={wt} winding={wc} bodies={bodies} "
               f"volume={vol:.0f} mm^3 bounds={np.round(m.bounds, 2).tolist()} "
               f"-> {'PASS' if ok else 'FAIL'}")
+
+    # the four faces must show the same dovetail, or it is not this puzzle
+    zs = np.arange(BAND_Z + 0.5, KEY_Z1R - CLR - 0.05, 0.1)
+    prof = face_key_profile(bottom, zs)
+    spread = 0.0
+    for i, z in enumerate(zs):
+        vals = [prof[nm][i] for nm, *_ in FACE_SPECS]
+        if any(v[0] is None for v in vals):
+            spread = float("inf")
+            continue
+        spread = max(spread,
+                     max(v[0] for v in vals) - min(v[0] for v in vals),
+                     max(v[1] for v in vals) - min(v[1] for v in vals))
+    face_ok = spread <= 0.05
+    ok_all &= face_ok
+    print(f"face fidelity: spread between the four faces {spread:.3f} mm -> "
+          f"{'PASS' if face_ok else 'FAIL'}")
+    report["face_spread_mm"] = spread
 
     def inter_vol(a, b):
         m = trimesh.boolean.intersection([a, b], engine="manifold")

@@ -627,8 +627,8 @@ down where the axis can be:
 | arc radius at block center | ≈ 185 mm (grooves visibly curved: ~7 mm of sagitta across the block) |
 | opening motion | ≈ 12° of rotation frees the parts (verified clean out to 25°) |
 | key (per face, centered) | 12 mm at the band → 20 mm at the top, **4.5 mm tall** (7.5 → 12.0), with a 1.3 mm straight neck before the flare (DFM: lip depth ≥ 0.55 mm even on the shallow faces) |
-| key anchor rails | 12 × 8 mm, as in Part 7 — **not yet** carrying the face-shadow rule; see
-§14.8 |
+| key anchor rails | 8 mm inward run, anchored on the trapezoid's inboard-most edge exactly as in
+Part 7 — 12 mm wide on the back and left faces, 20 mm on the front and right (§14.8) |
 | plateau | flat top 60 × 60 at z = 11, **orbit-swept curtain walls** (no 45° ramps) |
 | QR / title / subtitle / clearance / signature | identical to Part 7 |
 
@@ -676,15 +676,16 @@ interface silhouette differs slightly from the straight edition's pyramid look.
 
 | check | result |
 |---|---|
-| bottom part | watertight, 1 body, 88 380 mm³, exactly [0,100]×[0,100]×[0,12.05] |
-| top part | watertight, 1 body, 57 572 mm³, exactly [0,100]×[0,100]×[7.65,15] |
+| bottom part | watertight, 1 body, 89 182 mm³, exactly [0,100]×[0,100]×[0,12.05] |
+| top part | watertight, 1 body, 56 616 mm³, exactly [0,100]×[0,100]×[7.65,15] |
+| **face fidelity** | the dovetail outline agrees across all four faces to 0.008 mm |
 | assembled overlap | 0.000000 mm³ |
 | rotation about **A**, 12 stations 0.05° … 25° | 0.000000 mm³ at every station |
-| **control**: pull straight up 1 / 2 mm | collides (128.5 / 227.6 mm³) |
-| **control**: flat diagonal slide 1 / 2 mm | collides (416.3 / 926.1 mm³) |
-| **control**: the straight-edition slide **d** = (0.7,0.7,1), 2 / 5 mm | collides (282.1 / 73.8 mm³) — the curve is load-bearing: the old move does not open the new puzzle |
-| **control**: reverse rotation 1° | collides (21 424 mm³) |
-| thin-feature scan (0.5 mm FDM rule) | clean on both parts except the same solid-backed flank chamfer edges as Part 10 |
+| **control**: pull straight up 1 / 2 mm | collides (110.8 / 232.3 mm³) |
+| **control**: flat diagonal slide 1 / 2 mm | collides (385.6 / 929.4 mm³) |
+| **control**: the straight-edition slide **d** = (0.7,0.7,1), 2 / 5 mm | collides (297.1 / 86.7 mm³) — the curve is load-bearing: the old move does not open the new puzzle |
+| **control**: reverse rotation 1° | collides (21 338 mm³) |
+| thin-feature scan (0.5 mm FDM rule) | 6.56 mm² total, worst patch 0.40 mm² — the same solid-backed flank corners as Part 10, nothing cantilevered |
 
 **14.6 Printing and playing.** Print exactly as in Part 11 (`U3T_rot_bottom.stl` as oriented,
 `U3T_rot_top_print.stl` pre-flipped; no supports; same 0.3 mm total clearance). To open: hold the
@@ -707,17 +708,37 @@ a nice demonstration of just how large this family of solutions is.
 | `verification/verify_report_rot.json` | machine-readable results of §14.5 |
 | `docs/figures/rot_*.png` | figures of this chapter |
 
-**14.8 Still owed: the face-shadow rule.** The rotation edition was built before the rule in
-Part 6 existed, and it carries the same defect the straight edition has now shed: its keys are all
-anchored on the trapezoid base, so on the faces where the orbits leave the block the flare is
-cantilevered. `dfm_scan.py` reports it plainly — 1.55 mm² patches at z = 11.5 on the front and
-right faces, against 0.28 mm² for the inherent flank corners elsewhere. The remedy is identical in
-principle and slightly harder in practice: the face shadow is no longer a straight strip of the
-sheared plan, so its inboard edge must be obtained by running the face plane through
-`preimage_plan()` at the key top and at the band, and the rail anchored on whichever trapezoid edge
-falls outside it. Until that is done, print the straight edition for anything that will be handled.
+**14.8 The face-shadow rule across the bend map.** The rotation edition was built before the rule
+in Part 6 existed, and it inherited the same defect — worse, in fact, than the straight edition's:
+all four rails anchored on the trapezoid base, leaving the flare cantilevered on the two faces the
+orbits leave through (1.55 mm² patches at z = 12.0), and breaking the surface of the faces by up to
+**0.93 mm**, nearly twice the straight edition's error.
+
+The rule carries over unchanged; only its arithmetic does. The design plan is no longer a shear of
+real space, so the inboard direction cannot be read off a normal vector — it is measured instead,
+by pre-imaging a point on the face and the same point 1 mm inside it (`inward_plan_dir`). Projecting
+the trapezoid's two horizontal edges onto that direction then says which one lies further inside
+(`anchor_edge`), and the rail is built as a real-space rectangle at *that* edge's height, running
+inward from the face, and pre-imaged like everything else.
+
+Two details matter. The first is that the rail is measured off the **offset** trapezoid rather than
+the nominal one. A mitred offset does not move a flare corner by the clearance; it moves it by
+2.85 × the clearance, because the corner is where two nearly parallel edges meet. Size the rail
+from the nominal 10 mm half-width and it comes out 0.278 mm narrow on the bottom part and 0.278 mm
+proud on the top one — a strip of unbacked flare tip on one side, a rail standing past the flare on
+the other, which is a miniature of the defect being fixed. The second detail is that the rail's
+outer edge sits exactly *in* the face plane, not overshot beyond it as the original code did by
+1 mm. Together these make the rail and the trapezoid share their anchor edge as identical
+real-space points, so the two pre-images butt exactly; `key_footprints_rot` also now refuses to
+return a footprint that has come apart into more than one piece.
+
+The rule chose the **front and right** faces for flare-width anchoring — which are exactly the two
+`dfm_scan.py` had flagged, arrived at independently. Afterwards: face spread 0.93 mm → **0.008 mm**,
+worst thin patch 1.55 mm² → **0.40 mm²**, and 8.2 to 10.7 mm of solid material behind the full width
+of the two flares that had been standing on 0.2 mm of air.
 
 ---
 
-*pepi's notes, completed August 2026; keys re-anchored September 2026, after the first printed pair
-came back with two flares worn thin. The U3T finally has everything except a name.*
+*pepi's notes, completed August 2026; keys re-anchored in both editions September 2026, after the
+first printed pair came back with two flares worn thin. The U3T finally has everything except a
+name.*

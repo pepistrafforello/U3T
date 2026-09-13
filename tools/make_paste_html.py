@@ -6,14 +6,18 @@ emphasis survive; each image lands as a real Medium image you can then caption.
 """
 import os
 import re
+import sys
 
 import markdown
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "docs", "article", "medium-post.md")
 IMG = os.path.join(ROOT, "docs", "article", "images")
 BUILD = os.path.join(ROOT, "build")
 os.makedirs(BUILD, exist_ok=True)
+
+# which article: the original by default, any stem under docs/article otherwise
+STEM = sys.argv[1] if len(sys.argv) > 1 else "medium-post"
+SRC = os.path.join(ROOT, "docs", "article", STEM + ".md")
 
 body = markdown.markdown(open(SRC, encoding="utf-8").read(), extensions=["smarty"])
 # the markdown references images/… relative to the article; make them absolute so
@@ -33,7 +37,7 @@ page = f"""<!DOCTYPE html>
 {body}
 </body></html>
 """
-out = os.path.join(BUILD, "medium-post-paste.html")
+out = os.path.join(BUILD, STEM + "-paste.html")
 open(out, "w", encoding="utf-8").write(page)
 print("written:", out)
 print("images referenced:", len(re.findall(r"<img", page)))

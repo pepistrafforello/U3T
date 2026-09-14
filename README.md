@@ -253,7 +253,7 @@ The shipped artwork is a lockup laid out across three facets by `tools/lockup_la
 above, a company below, a cube between them. `docs/templates/relief.json` records how high each
 piece stands and what shape it is. Those are *nominal* heights, from which the relief keeps the
 0.15 mm clearance, so the text specified at 0.8 mm stands 0.65 mm off the built facet and the cube
-specified at 1.1 mm apexes at 0.95 mm. The text is flat-topped; the cube's three faces are real
+specified at 3.15 mm apexes at 3.00 mm. The text is flat-topped; the cube's three faces are real
 sloped planes meeting at that apex, so it shades like a solid instead of reading as a hexagon.
 
 ![The lockup on the flattened canvas](docs/article/images/f3_canvas.png)
@@ -263,10 +263,17 @@ Two things that shape relief on a surface like this, both learned by getting the
 * **A drawn cube is not a relief cube.** The three lines radiating from the centre of an isometric
   cube are *ridges*, which the pyramid raises by itself. Engraving them as grooves removes exactly
   the apex that sells the shape. The artwork is the plain silhouette; the geometry does the rest.
-* **Shading depends on apex ÷ radius, not on apex.** The shipped cube is 12.5 mm across, and its
-  0.95 mm apex tilts the three faces 9.1°, 9.2° and 10.6° off the facet — enough for a raking light
-  to separate them. Scale the identical emblem to 49 mm and the same apex tilts them barely 2°: it
-  flattens back into a hexagon. Drawing it *smaller* is what made it read as three-dimensional.
+* **Shading depends on apex ÷ radius, not on apex.** Seen down its diagonal a true cube's near
+  corner stands √2 × the silhouette radius proud — 9.4 mm for this 13.3 mm emblem. The first build
+  used 0.95 mm, a tenth of that, and it read as a hexagon with a crease. The shipped cube is
+  **3.0 mm**, a third of a true one, which tilts the three faces 24.8°, 24.7° and 28.2° and
+  separates them under almost any light.
+* **Past a point, the outline starts to show.** Only 81 % of this silhouette's perimeter is
+  straight; the other 7.6 mm is corner rounding inherited from the drawing, and the radius wanders
+  between 5.80 and 6.66 mm. A shallow pyramid hides that. A steep one magnifies it — at a 5 mm apex
+  the cap planes cut the rounded corners into visibly curved top edges and the emblem reads as a
+  pillow rather than a cube. 3 mm is the most depth this outline carries cleanly; a sharper,
+  regular hexagon would carry more.
 
 ---
 
@@ -351,19 +358,19 @@ generator attacks its own output before it exits, and writes the results to `ver
 
 | check | straight edition | rotation edition |
 |---|---|---|
-| bottom part watertight, consistent winding | yes — 80 896 mm³ | yes — 82 296 mm³ |
-| top part watertight, consistent winding | yes — 65 782 mm³ | yes — 63 503 mm³ |
+| bottom part watertight, consistent winding | yes — 80 896 mm³ | yes — 82 414 mm³ |
+| top part watertight, consistent winding | yes — 65 782 mm³ | yes — 63 380 mm³ |
 | **connected bodies per part** | 1 and 1 | 1 and 1 |
 | **the files as written** — re-read from disk | 3 of 3 watertight, 1 body | 3 of 3 watertight, 1 body |
 | **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.008 mm |
 | assembly envelope | exactly 100 × 100 × 15 | exactly 100 × 100 × 15 |
 | assembled overlap | 0.000000 mm³ | 0.000000 mm³ |
 | overlap through the full opening motion | 0.000000 mm³ at 14 stations, t = 0.05 … 40 mm | 0.000000 mm³ at 12 stations, θ = 0.05° … 25° |
-| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 68.4 / 172.3 mm³ |
-| **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 217.2 / 598.8 mm³ |
-| **control** — the *other* edition's move | — | collides: 216.5 mm³ (straight slide, 2 mm) |
-| **control** — reverse rotation, 1° | — | collides: 21 710 mm³ |
-| thin-feature scan (`dfm_scan.py`) | 15 and 14 patches, worst 0.27 mm² | 45 and 63 patches — see below |
+| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 68.7 / 172.3 mm³ |
+| **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 223.5 / 623.4 mm³ |
+| **control** — the *other* edition's move | — | collides: 216.9 mm³ (straight slide, 2 mm) |
+| **control** — reverse rotation, 1° | — | collides: 21 705 mm³ |
+| thin-feature scan (`dfm_scan.py`) | 15 and 14 patches, worst 0.27 mm² | 45 and 65 patches — see below |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -426,12 +433,12 @@ for flare-width anchoring, which are exactly the two `dfm_scan.py` had flagged, 
 independently. Face spread 0.93 mm → 0.008 mm.
 
 The fan and the relief standing on it bring their own entries to that scan: 45 patches on the
-rotation bottom part and 63 on the top, against 15 and 14 for the straight edition. They fall into
+rotation bottom part and 65 on the top, against 15 and 14 for the straight edition. They fall into
 three classes, and each one has to be argued rather than counted.
 
 * **Glyph corners and the rim of the pyramid**, 0.1–0.9 mm² each, ~8 mm² in total. These are the
   outlines of the relief caught at a height where the slice clips a corner. Behind each is the full
-  0.65–0.95 mm of relief, standing on a solid facet.
+  0.65 mm of text or up to 3.0 mm of cube, standing on a solid facet.
 * **Key flanks running out into their own face**, 0.27–0.40 mm² — the same chamfer corners the
   straight edition has.
 * **The ridge where the innermost facet meets its riser**: three patches of 18–37 mm² in the top
@@ -467,7 +474,7 @@ would have failed.
   Either way, because the lean breaks the square's symmetry, **only one of the four orientations
   engages** — the solver has to find the motion *and* the orientation.
 * **The reveal** — the interface reads best under a point source rather than diffuse room light.
-  The cube's three faces are tilted 9.1°, 9.2° and 10.6° in three different directions, which a
+  The cube's three faces are tilted 24.8°, 24.7° and 28.2° in three different directions, which a
   raking beam separates and flat light flattens back into a hexagon. Seen along the opening motion
   the five strips line up into one page — that is the view worth handing someone. If you put a QR
   code back on it, a soft pencil rubbed flat across the module tops makes it scan instantly.

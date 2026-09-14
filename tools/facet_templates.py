@@ -74,8 +74,27 @@ def path_d(ring):
             + " Z")
 
 
-def write_svg(path, shapes, caption, title, note):
+def has_artwork(path):
+    """True if someone has already drawn in this file."""
+    if not os.path.exists(path):
+        return False
+    from lxml import etree
+    try:
+        root = etree.parse(path).getroot()
+    except Exception:
+        return False
+    for node in root.iter():
+        if node.get("id") == "artwork":
+            return any(isinstance(c.tag, str) for c in node.iter() if c is not node)
+    return False
+
+
+def write_svg(path, shapes, caption, title, note, force=False):
     """shapes: polygons in page millimetres, origin already at (PAD, PAD)."""
+    if has_artwork(path) and not force:
+        print(f"  KEPT {os.path.basename(path)}: it has artwork in it. "
+              f"Pass --force to replace it.")
+        return
     w = max(s.bounds[2] for s in shapes) + PAD
     h = max(s.bounds[3] for s in shapes) + PAD + CAPTION
     p = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w:.2f}mm" '
@@ -108,6 +127,7 @@ def write_svg(path, shapes, caption, title, note):
 
 
 def main():
+    force = "--force" in sys.argv
     mesh = trimesh.load(os.path.join(ROOT, "stl", "U3T_rot_bottom.stl"))
     found = []
     for rho_out, phi in r.canvas_facets():
@@ -133,12 +153,14 @@ def main():
         write_svg(os.path.join(OUT, f"facet_{i}.svg"), [page], cap,
                   f"U3T rotation edition, canvas facet {i}",
                   "x runs along the rotation axis; y is radial, and the top edge "
-                  "of the shape is the riser.")
+                  "of the shape is the riser.", force)
         meta.append(dict(facet=i, file=f"facet_{i}.svg", w0=w0, r1=r1,
                          tilt_deg=float(np.degrees(phi)),
                          rho_in=float(y0), rho_out=float(y1),
                          length_mm=float(x1 - x0), width_mm=float(y1 - y0),
-                         area_mm2=float(poly.area)))
+                         area_mm2=float(poly.area),
+                         page_outlines=[[[round(a, 4), round(b, 4)]
+                                         for a, b in page.exterior.coords]]))
         # combined page: one frame shared by every facet
         sheets.append(Polygon([(x - (w_min - PAD), (rho_top + PAD) - y)
                                for x, y in poly.exterior.coords]))
@@ -149,10 +171,13 @@ def main():
     write_svg(os.path.join(OUT, "canvas_combined.svg"), sheets, cap,
               "U3T rotation edition, all facets on one continuous sheet",
               "Artwork may cross the seams: viewed along the motion they have "
-              "no width.")
+              "no width.", force)
     meta.append(dict(facet="combined", file="canvas_combined.svg",
                      w0=w_min - PAD, r1=rho_top + PAD,
-                     area_mm2=float(sum(s.area for s in sheets))))
+                     area_mm2=float(sum(s.area for s in sheets)),
+                     page_outlines=[[[round(a, 4), round(b, 4)]
+                                     for a, b in sh.exterior.coords]
+                                    for sh in sheets]))
     json.dump(meta, open(os.path.join(OUT, "templates.json"), "w"), indent=1)
     print(f"\ncombined sheet {sum(s.area for s in sheets):.0f} mm2 in {len(sheets)} "
           f"strips -> {OUT}")

@@ -136,18 +136,60 @@ def check(geom, facet=None, safe=1.0, min_feature=g.MIN_FEATURE):
     return problems
 
 
+def facet_of(svg_path):
+    """The drawable region for this template, from templates.json, or None."""
+    import json
+    meta_path = os.path.join(ROOT, "docs", "templates", "templates.json")
+    if not os.path.exists(meta_path):
+        return None
+    name = os.path.basename(svg_path)
+    for entry in json.load(open(meta_path)):
+        if entry.get("file") == name and entry.get("page_outlines"):
+            strips = [Polygon(ring) for ring in entry["page_outlines"]]
+            merged = unary_union(strips)
+            # On the combined sheet the seams between strips are internal: the
+            # surface continues across them, stepped, and artwork is meant to
+            # cross. Close the sub-millimetre gaps the clearance leaves between
+            # adjacent strips so the margin applies to the outer edge only.
+            if len(strips) > 1:
+                merged = merged.buffer(0.4).buffer(-0.4)
+            return merged
+    return None
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return
     for path in sys.argv[1:]:
         geom, skipped = artwork(path)
-        n = len(list(getattr(geom, "geoms", [geom]))) if not geom.is_empty else 0
-        print(f"\n{os.path.basename(path)}: {n} filled regions, "
+        shapes, regions = count_shapes(path), (
+            len(list(getattr(geom, "geoms", [geom]))) if not geom.is_empty else 0)
+        print(f"\n{os.path.basename(path)}")
+        print(f"  {shapes} drawn shape(s) -> {regions} separate raised region(s), "
               f"{geom.area:.1f} mm2 of relief"
-              + (f", {skipped} shape(s) with no area skipped" if skipped else ""))
-        for msg in check(geom):
+              + (f"; {skipped} with no area skipped" if skipped else ""))
+        if not geom.is_empty:
+            x0, y0, x1, y1 = geom.bounds
+            print(f"  occupies {x1-x0:.1f} x {y1-y0:.1f} mm at page "
+                  f"({x0:.1f}, {y0:.1f})")
+        if shapes > regions and regions:
+            print(f"  note: {shapes} shapes merged into {regions}. Relief has one "
+                  f"height, so colour and opacity do not survive -- overlapping "
+                  f"shapes become a single raised blob.")
+        facet = facet_of(path)
+        if facet is None:
+            print("  (no facet outline on file for this template, "
+                  "so containment is unchecked)")
+        for msg in check(geom, facet=facet):
             print("   ! " + msg)
+
+
+def count_shapes(svg_path):
+    """How many shapes the artist actually drew."""
+    from svgelements import SVG as _SVG, Shape as _Shape
+    svg = _SVG.parse(_without_template(svg_path), reify=True, ppi=25.4)
+    return sum(1 for el in svg.elements() if isinstance(el, _Shape))
 
 
 if __name__ == "__main__":

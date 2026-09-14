@@ -17,7 +17,7 @@ qrcode>=7.4            # [8.2]     the hidden payload
 matplotlib>=3.7        # [3.10.8]  glyph outlines for the engraved text; diagrams
 
 # --- drawing templates and artwork import: tools/facet_templates.py,
-#     tools/svg_content.py ---
+#     tools/svg_content.py, tools/lockup_layout.py ---
 svgelements>=1.9      # [1.9.6]   reads artwork SVG, resolving units and transforms
 lxml>=4.9             # [6.0.2]   strips the template layer before parsing
 

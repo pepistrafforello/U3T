@@ -47,10 +47,17 @@ Two consequences fall out of that one sentence:
 * **The middle of the block becomes free real estate.** Once the perimeter does the puzzle's work,
   the rest of the hidden interface can be arbitrary artwork: a title, a portrait, a QR code.
 
-The shipped object uses that space for a graduation gift — a title, a subtitle, and a scannable QR
-code, none of it visible from outside:
+The first object built this way spent that space on a graduation gift — a title, a subtitle and a
+scannable QR code, on a plateau parallel to the top face. It printed, and it was legible, but only
+just: a plateau that far from perpendicular to the opening motion foreshortens everything on it,
+and relief walls that have to run parallel to **d** make every raised island drift sideways as it
+rises. The rotation edition now carries a **sawtooth fan** instead — five facets, each one exactly
+perpendicular to the motion — and the resolution problem goes away:
 
-![The hidden interface](docs/article/images/r3_interface.png)
+![The hidden interface, seen along the opening motion](docs/article/images/f3_lockup.png)
+
+*Five separate strips. Seen along the motion the risers between them are edge-on, so the surface
+reads as one continuous page — from that one direction, and no other.*
 
 ---
 
@@ -74,8 +81,14 @@ docs/
   article/medium-post.md      the article, in Medium's voice
   article/medium-followup.md  the follow-up: what the first printed pair got wrong
   article/images/             their renders (Blender/Cycles) and diagrams (matplotlib)
+  templates/                  the five millimetre-true SVG canvases, and the guide to
+                              drawing on them
 
 tools/
+  facet_templates.py      writes the drawing templates, measured off the built mesh
+  svg_content.py          reads artwork back off a template, and checks it is printable
+  lockup_layout.py        lays out the shipped lockup across three facets
+  fan_figures.py          the sawtooth figures, and the shot list for the render
   prep_shots.py           poses the verified STLs and emits the shot list
   blender_render.py       headless Cycles renderer for the photographic figures
   postprocess.py          flatten / crop / montage / sanity-check the renders
@@ -99,17 +112,17 @@ python -m venv .venv
 .venv\Scripts\activate          # Windows;  source .venv/bin/activate elsewhere
 pip install -r requirements.txt
 
-python u3t_generator.py         # straight edition: build + verify        (~10 s)
-python u3t_rot_generator.py     # rotation edition: build + verify        (~25 s)
-python dfm_scan.py              # minimum-feature scan of all four parts  (~45 s)
+python u3t_generator.py         # straight edition: build + verify        (~15 s)
+python u3t_rot_generator.py     # rotation edition: build + verify        (~4 min)
+python dfm_scan.py              # minimum-feature scan of all four parts  (~3 min)
 ```
 
 Each generator writes its STLs to `stl/`, its report to `verification/`, and prints the whole
 verification suite as it goes:
 
 ```
-bottom: watertight=True winding=True bodies=1 volume=90202 mm^3 ... -> PASS
-top:    watertight=True winding=True bodies=1 volume=55874 mm^3 ... -> PASS
+bottom: watertight=True winding=True bodies=1 volume=80896 mm^3 ... -> PASS
+top:    watertight=True winding=True bodies=1 volume=65782 mm^3 ... -> PASS
 face fidelity: spread between the four faces 0.001 mm -> PASS
 assembled overlap: 0.000000 mm^3 -> PASS
 slide along d, t= 0.05: overlap=0.000000 -> PASS
@@ -126,15 +139,18 @@ Nothing else is needed to print the object — but if you want to regenerate the
 
 ## The two editions
 
-Both are 100 × 100 × 15 mm, both show the identical dovetailed seam on all four faces, and both
-hide the same interface. They differ only in the motion that opens them — which is the point: two
-objects that are indistinguishable from the outside and refuse each other's solution.
+Both are 100 × 100 × 15 mm and both show the identical dovetailed seam on all four faces. They
+differ in the motion that opens them — which is the point: two objects that are indistinguishable
+from the outside and refuse each other's solution — and, now, in what they hide. The rotation
+edition carries the [sawtooth fan](#the-hidden-interface-a-sawtooth-fan); the straight edition
+carries a single tilted band, blank for the moment, while its content is redesigned.
 
 | | straight edition | rotation edition |
 |---|---|---|
 | opening motion | translation along **d** = (0.7, 0.7, 1) | rotation of ≈ 12° about an external axis |
 | axis / direction | 44.7° off vertical, diagonal in plan | direction (1, 1, 0)/√2 through (105, −105, −103.5) mm |
 | walls | planar, parallel to **d** | patches of cylinders coaxial with the axis |
+| hidden interface | one tilted band, 30°, blank | a five-facet fan, 3553 mm², carrying relief |
 | generator | `u3t_generator.py` | `u3t_rot_generator.py` |
 | print files | `stl/U3T_bottom.stl`, `stl/U3T_top_print.stl` | `stl/U3T_rot_bottom.stl`, `stl/U3T_rot_top_print.stl` |
 | report | `verification/verify_report.json` | `verification/verify_report_rot.json` |
@@ -155,6 +171,105 @@ and the write-up derives:
 
 ---
 
+## The hidden interface: a sawtooth fan
+
+A flat plateau is the wrong shape for a payload, for a reason that has nothing to do with printing:
+it sits 44.7° away from perpendicular to the motion. Everything on it is foreshortened, and because
+relief walls must run parallel to **d**, a 1.24 mm QR module raised 1.2 mm ends up with 0.05 mm of
+itself standing over its own base. Tilting the plane toward perpendicular fixes both — and
+immediately runs out of slab, leaving a single band 12 mm wide.
+
+The rotation edition escapes that trade for free. **A plane through the rotation axis is
+perpendicular to every orbit it meets**, not merely at one point: its tangent space is spanned by
+the axis direction and the radius, and the orbit velocity is perpendicular to both. A facet on such
+a plane is therefore exactly normal to the motion *everywhere on it* — no foreshortening, no drift.
+
+And such facets can be stacked. In the unwrapped design plan the interface becomes a descending
+staircase in radius: facets at constant phase, separated by risers at constant radius. A riser at
+constant radius is a cylinder about the axis, which is swept by orbits — so it is exactly the kind
+of cliff "parallel to the motion" that the height-field rule already permits. The result is a
+sawtooth, and the whole solid is a union of wedges:
+
+```
+bottom solid  =  ⋃ₖ [ cylinder(ρ ≤ ρₖ₊₁) ∩ half-space(φ ≤ φₖ) ]
+```
+
+![Sections across both interfaces](docs/article/images/f3_sections.png)
+
+| facet | inner radius | tilt | strip width | length | canvas |
+|---|---|---|---|---|---|
+| 1 | 152.6 mm | 45.0° | 12.7 mm | 38.0 mm | 251 mm² |
+| 2 | 165.3 mm | 40.7° | 13.8 mm | 75.6 mm | 790 mm² |
+| 3 | 179.1 mm | 37.1° | 14.9 mm | 94.6 mm | 1277 mm² |
+| 4 | 194.0 mm | 33.8° | 16.2 mm | 76.8 mm | 923 mm² |
+| 5 | 210.2 mm | 30.9° | 16.4 mm | 38.5 mm | 312 mm² |
+| | | | | | **3553 mm²** |
+
+The radii step by a constant ratio K = (z_hi − z_axis) / (z_lo − z_axis) = 1.0833, which is why the
+strips widen across the fan; it is trimmed where a riser would overhang more than
+`CANVAS_MAX_LEAN` = 45°, which is also what keeps it printable without supports.
+
+Two properties are worth knowing before drawing anything on it.
+
+* **Depth buys width, not area.** The facet run is Δz / tan φ and the riser run is Δz · tan φ, so the
+  share of the footprint that ends up as canvas is cos²φ whatever the depth. Going deeper — the fan
+  reaches from z = 4.5 to z = 13.5, *below* the seam as well as above it — buys wider strips and
+  nothing else, paid for in floor thickness under the canvas.
+* **The seams cost no width.** The risers stand at constant radius, so looking along the opening
+  motion they are edge-on. Artwork may run across a seam and will read as continuous — from that one
+  direction. From any other angle the surface reads as a louvre and the seams show.
+
+Because the canvas floor at 4.5 mm is below the 7.5 mm seam, the interface can no longer be built
+on top of the slab. Within the canvas footprint the slab is cut away and the fan put in its place:
+
+```
+L  =  [ (slab ∪ keys) \ curtain ]  ∪  [ (⋃ wedges) ∩ curtain ]
+```
+
+where `curtain` is the full-height orbit-swept prism through the canvas footprint — built by the
+same `prism()` / `geom_preimage()` pair as everything else, so its walls are parallel to the motion
+and its boundary is itself a legal cliff.
+
+### Drawing on it
+
+`docs/templates/` holds five millimetre-true SVG canvases, one per facet, plus a combined sheet
+where the five sit in their true relative positions. They are measured off the built mesh, so a
+template is exactly the surface that exists — clearance, curtain and angle trim already taken off.
+
+```bash
+python tools/facet_templates.py                          # (re)generate the templates
+# draw in the `artwork` layer — Inkscape, or anything SVG-native
+python tools/svg_content.py docs/templates/facet_3.svg   # check it before building
+python u3t_rot_generator.py                              # build the relief
+```
+
+[`docs/templates/README.md`](docs/templates/README.md) is the drawing guide: closed filled paths
+only, nothing thinner than `MIN_FEATURE`, stay inside the dashed margin. `svg_content.py` checks all
+three and catches the "it was all still live text" mistake in a second rather than after a print.
+`facet_templates.py` refuses to overwrite a template that has been drawn on unless you pass
+`--force`.
+
+The shipped artwork is a lockup laid out across three facets by `tools/lockup_layout.py` — a name
+above, a company below, a cube between them. `docs/templates/relief.json` records how high each
+piece stands and what shape it is. Those are *nominal* heights, from which the relief keeps the
+0.15 mm clearance, so the text specified at 0.8 mm stands 0.65 mm off the built facet and the cube
+specified at 1.1 mm apexes at 0.95 mm. The text is flat-topped; the cube's three faces are real
+sloped planes meeting at that apex, so it shades like a solid instead of reading as a hexagon.
+
+![The lockup on the flattened canvas](docs/article/images/f3_canvas.png)
+
+Two things that shape relief on a surface like this, both learned by getting them wrong:
+
+* **A drawn cube is not a relief cube.** The three lines radiating from the centre of an isometric
+  cube are *ridges*, which the pyramid raises by itself. Engraving them as grooves removes exactly
+  the apex that sells the shape. The artwork is the plain silhouette; the geometry does the rest.
+* **Shading depends on apex ÷ radius, not on apex.** The shipped cube is 12.5 mm across, and its
+  0.95 mm apex tilts the three faces 9.1°, 9.2° and 10.6° off the facet — enough for a raking light
+  to separate them. Scale the identical emblem to 49 mm and the same apex tilts them barely 2°: it
+  flattens back into a hexagon. Drawing it *smaller* is what made it read as three-dimensional.
+
+---
+
 ## Design parameters
 
 All of them live at the top of the generators, in millimetres. Change one, re-run, and the whole
@@ -171,11 +286,25 @@ object — including its proof — is rebuilt.
 | `KEY_HW0`, `KEY_HW1` | 6.0, 10.0 | key half-width at the band and at the top (it flares → undercut) |
 | `KEY_RAIL` | 6.0 | how far the internal anchor rail runs in behind each key |
 | `MIN_FEATURE` | 0.55 | minimum printable wall/stroke enforced on the interface artwork |
-| `PLAT_*` | 7.0 … 11.0, ±30/34 | the plateau frustum that carries the payload |
-| `QR_BOX`, `TITLE_BOX`, `SUB_BOX` | — | where the payload sits, in sheared plan coordinates |
-| `QR_PAYLOAD`, `TITLE`, `SUBTITLE`, `SIGNATURE` | — | the content itself |
+| `PLAT_TILT`, `PLAT_Z_LO/HI` | 30°, 8.5 … 13.5 | straight edition: the single tilted band |
+| `CONTENT` | `False` | straight edition: its payload is off while it is redesigned |
+| `QR_PAYLOAD`, `TITLE`, `SUBTITLE` | — | that payload's content, for when it comes back |
 
-Two rules constrain the numbers, and both were learned the hard way:
+The rotation edition inherits every one of those and adds its own, at the top of
+`u3t_rot_generator.py`:
+
+| parameter | shipped | meaning |
+|---|---|---|
+| `E`, `C` | (1, 1, 0)/√2 through (105, −105, −103.5) | the rotation axis |
+| `KEY_Z0R`, `KEY_Z1R` | 7.5, 12.0 | the key is 4.5 mm tall here rather than 4.0 |
+| `KEY_NECK_ZR` | 8.8 | the far faces have depth ratio ≈ 0.44, so the lip has to start later |
+| `KEY_RAIL_R` | 8.0 | interior anchor rail behind each key |
+| `CANVAS_Z_LO`, `CANVAS_Z_HI` | 4.5, 13.5 | the slice of the slab the fan may use |
+| `CANVAS_INSET` | 14.0 | keep the canvas this far from the side faces |
+| `CANVAS_MAX_LEAN` | 45.0 | trim the fan where a riser would overhang more than this |
+| `CONTENT_R` | `True` | build the relief from `docs/templates/*.svg` |
+
+Three rules constrain the numbers, and all three were learned the hard way:
 
 * **Depth costs lean.** A key `h` mm tall can protrude at most `lean × h` from the face. A
   near-vertical **d** gives wafer-thin keys no matter how you draw them. At 0.7 the design sits
@@ -195,8 +324,14 @@ Two rules constrain the numbers, and both were learned the hard way:
 
 ### Making your own
 
+For the rotation edition, draw on the templates and rebuild — see
+[Drawing on it](#drawing-on-it) above. Nothing in the generator needs editing.
+
+For the straight edition, set `CONTENT = True` and change the strings:
+
 ```python
 # u3t_generator.py
+CONTENT    = True
 QR_PAYLOAD = "https://example.com/album"   # shorter URLs -> coarser, easier-to-print modules
 TITLE      = "Your Name"
 SUBTITLE   = "Your Occasion"
@@ -216,24 +351,35 @@ generator attacks its own output before it exits, and writes the results to `ver
 
 | check | straight edition | rotation edition |
 |---|---|---|
-| bottom part watertight, consistent winding | yes — 90 202 mm³ | yes — 89 182 mm³ |
-| top part watertight, consistent winding | yes — 55 874 mm³ | yes — 56 616 mm³ |
+| bottom part watertight, consistent winding | yes — 80 896 mm³ | yes — 82 296 mm³ |
+| top part watertight, consistent winding | yes — 65 782 mm³ | yes — 63 503 mm³ |
 | **connected bodies per part** | 1 and 1 | 1 and 1 |
+| **the files as written** — re-read from disk | 3 of 3 watertight, 1 body | 3 of 3 watertight, 1 body |
 | **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.008 mm |
 | assembly envelope | exactly 100 × 100 × 15 | exactly 100 × 100 × 15 |
 | assembled overlap | 0.000000 mm³ | 0.000000 mm³ |
 | overlap through the full opening motion | 0.000000 mm³ at 14 stations, t = 0.05 … 40 mm | 0.000000 mm³ at 12 stations, θ = 0.05° … 25° |
-| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 110.8 / 232.3 mm³ |
-| **control** — flat diagonal slide, 1 / 2 mm | collides: 344.8 / 882.2 mm³ | collides: 385.6 / 929.4 mm³ |
-| **control** — the *other* edition's move | — | collides: 297.1 mm³ (straight slide, 2 mm) |
-| **control** — reverse rotation, 1° | — | collides: 21 338 mm³ |
-| thin-feature scan (`dfm_scan.py`) | 3.31 mm² total, worst patch 0.27 mm² | 6.56 mm² total, worst patch 0.40 mm² |
+| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 68.4 / 172.3 mm³ |
+| **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 217.2 / 598.8 mm³ |
+| **control** — the *other* edition's move | — | collides: 216.5 mm³ (straight slide, 2 mm) |
+| **control** — reverse rotation, 1° | — | collides: 21 710 mm³ |
+| thin-feature scan (`dfm_scan.py`) | 15 and 14 patches, worst 0.27 mm² | 45 and 63 patches — see below |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
 body-count row exists because it once failed — an early draft with a shallower **d** and no anchor
 rails produced keys that were watertight, collision-clean, and *detached*. Watertightness says
 nothing about a mesh being in one piece; counting connected components does.
+
+The file row is newer, and it is there for the same reason: it failed too. **The mesh in memory and
+the file on disk are not the same object.** STL stores float32, whose grid spacing at 100 mm is
+about 6 µm, and a boolean kernel leaves the occasional vertex pair half a micron apart — harmless
+in double precision. Re-orient such a mesh for printing and those pairs can round onto the same
+point, which tears it: the flipped print copy of the rotation top wrote out with six non-manifold
+edges while the mesh it was copied from verified watertight, and nothing in the suite noticed.
+Both generators now weld coincident vertices before writing (`weld()` in `u3t_generator.py`, which
+drops only faces that gain a repeated index — the one removal that cannot open a hole) and then
+re-read every file they produced.
 
 ---
 
@@ -277,12 +423,29 @@ carries the rule too. Because its design plan comes from a bend map rather than 
 inboard direction there cannot be read off a normal vector — it is measured, by pre-imaging a point
 on the face and the same point 1 mm inside it. The rule then picked the **front and right** faces
 for flare-width anchoring, which are exactly the two `dfm_scan.py` had flagged, arrived at
-independently. Face spread 0.93 mm → 0.008 mm, worst patch 1.55 mm² → 0.40 mm².
+independently. Face spread 0.93 mm → 0.008 mm.
 
-What is left on both editions, at 0.27–0.40 mm² a patch, is the corner where a flared flank runs
-out into its own face. Sample the material behind one and it grows 0.16 → 1.35 mm over a couple of
-millimetres of width: a solid wedge, which is what a chamfer is. That test — *is there material
-behind it* — is the one worth running on anything a thin-feature scan reports.
+The fan and the relief standing on it bring their own entries to that scan: 45 patches on the
+rotation bottom part and 63 on the top, against 15 and 14 for the straight edition. They fall into
+three classes, and each one has to be argued rather than counted.
+
+* **Glyph corners and the rim of the pyramid**, 0.1–0.9 mm² each, ~8 mm² in total. These are the
+  outlines of the relief caught at a height where the slice clips a corner. Behind each is the full
+  0.65–0.95 mm of relief, standing on a solid facet.
+* **Key flanks running out into their own face**, 0.27–0.40 mm² — the same chamfer corners the
+  straight edition has.
+* **The ridge where the innermost facet meets its riser**: three patches of 18–37 mm² in the top
+  part's very first slice, at z = 4.93. That one is large enough to deserve a second look, and it
+  got one. The facet and the riser meet at an interior angle of **87–90°** — a right-angle ridge,
+  not a wall. It runs 75 mm horizontally, parallel to the axis, which is exactly why a *horizontal*
+  slice through it is long and thin while a slice across it is a solid wedge. In the print file that
+  ridge is the highest point of the part, laid down last on top of the material that supports it.
+
+What is left, then, is in every case the corner where one surface runs out into another. Sample the
+material behind a key-flank patch and it grows 0.16 → 1.35 mm over a couple of millimetres of
+width: a solid wedge, which is what a chamfer is. That test — *is there material behind it* — is
+the one worth running on anything a thin-feature scan reports, and it is the test the shipped ledge
+would have failed.
 
 ---
 
@@ -291,19 +454,23 @@ behind it* — is the one worth running on anything a thin-feature scan reports.
 * **Files** — print `stl/U3T_bottom.stl` as oriented and `stl/U3T_top_print.stl` (already flipped
   exterior-side-down); or the `U3T_rot_*` pair for the rotation edition. `U3T_top.stl` and
   `U3T_rot_top.stl` are the assembly-oriented copies, for CAD and inspection.
-* **No supports.** The leaning walls sit at 44.7°, right at the classic FDM limit; the ramps are
-  gentler; every relief faces up on the bed.
-* **Settings** — PLA, 0.2 mm layers (0.12 mm makes a crisper QR), 3 perimeters, ≥ 15 % infill.
+* **No supports.** The leaning walls sit at 44.7°, right at the classic FDM limit; the fan's risers
+  are trimmed at 45° for the same reason; every relief faces up on the bed in the print files.
+* **Settings** — PLA, 0.2 mm layers (0.12 mm makes crisper relief), 3 perimeters, ≥ 15 % infill.
   Enable elephant-foot compensation (~0.1 mm) or deburr the first-layer edges: the band and the
   side faces have to mate flush.
 * **Fit** — the 0.3 mm total gap is a snug sliding fit on a well-tuned printer. If it binds, sand
   lightly or rebuild with `CLR = 0.20`; for a loose demonstration fit use `CLR = 0.25`.
 * **Assembly** — rest the top over the bottom offset by about +10 mm in x and y and lower it along
-  the diagonal; it seats flush in one push. Because the lean of **d** breaks the square's symmetry,
-  **only one of the four orientations engages** — the solver has to find the motion *and* the
-  orientation.
-* **The reveal** — relief QR codes scan best under raking light; a soft pencil rubbed flat across
-  the module tops makes them scan instantly.
+  the diagonal; it seats flush in one push. The rotation edition takes the same single move as a
+  swing rather than a slide: about 12° about an axis running diagonally, well outside the block.
+  Either way, because the lean breaks the square's symmetry, **only one of the four orientations
+  engages** — the solver has to find the motion *and* the orientation.
+* **The reveal** — the interface reads best under a point source rather than diffuse room light.
+  The cube's three faces are tilted 9.1°, 9.2° and 10.6° in three different directions, which a
+  raking beam separates and flat light flattens back into a hexagon. Seen along the opening motion
+  the five strips line up into one page — that is the view worth handing someone. If you put a QR
+  code back on it, a soft pencil rubbed flat across the module tops makes it scan instantly.
 
 ---
 
@@ -323,6 +490,16 @@ python u3t_figures.py                     # technical-document figures -> docs/f
 python u3t_rot_figures.py
 ```
 
+The sawtooth figures are a separate, shorter pass, because the shot that shows the interface has to
+be framed on whatever is actually drawn on the templates:
+
+```bash
+python tools/fan_figures.py --shots       # frame the shot -> build/shots_readme.json
+blender -b --factory-startup -noaudio --python tools/blender_render.py -- \
+        build/shots_readme.json build/readme_raw
+python tools/fan_figures.py               # sections, canvas, and the render, flattened
+```
+
 `postprocess.py` finishes with an automated check on every emitted image (minimum width, and a
 non-white content fraction inside sane bounds) and prints `BAD: none` when they all pass.
 `make_paste_html.py` produces a local page whose rich-text copy-paste lands cleanly in Medium's
@@ -337,6 +514,7 @@ editor, images included.
 | [`docs/The-Unnamed-3D-Thingy.md`](docs/The-Unnamed-3D-Thingy.md) | the complete write-up: the original notes, the proof, a step-by-step Autodesk Fusion walkthrough, the automated pipeline, the verification suite, printing, and the rotation edition |
 | [`docs/article/medium-post.md`](docs/article/medium-post.md) | the same story told as an article, for readers rather than builders |
 | [`docs/article/medium-followup.md`](docs/article/medium-followup.md) | the follow-up: the two keys the first printed pair got wrong, and the rule that was missing |
+| [`docs/templates/README.md`](docs/templates/README.md) | how to draw on the five canvases: tools, format, and the rules the relief imposes |
 | [`docs/original-design-notes.pdf`](docs/original-design-notes.pdf) | where it began: the unfinished notes, kept for provenance |
 
 ---

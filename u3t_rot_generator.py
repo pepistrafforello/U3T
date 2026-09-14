@@ -22,6 +22,7 @@ face seams and interface content land exactly where designed.
 
 import json
 import os
+import sys
 
 import numpy as np
 import shapely
@@ -39,6 +40,7 @@ from u3t_generator import (
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STL = os.path.join(ROOT, "stl")
 REPORTS = os.path.join(ROOT, "verification")
+sys.path.insert(0, os.path.join(ROOT, "tools"))
 os.makedirs(STL, exist_ok=True)
 os.makedirs(REPORTS, exist_ok=True)
 
@@ -80,7 +82,7 @@ CANVAS_Z_HI = 13.5       # ceiling: the top part keeps 15 - this above it
 CANVAS_INSET = 14.0      # keep the canvas this far from the side faces
 CANVAS_MAX_LEAN = 45.0   # trim the fan where a riser would overhang more than this
 
-CONTENT_R = False                        # relief: off while the content is redesigned
+CONTENT_R = True                         # relief from docs/templates/*.svg
 QR_TOP_ZR = 12.2
 TXT_TOP_ZR = 12.0
 
@@ -165,6 +167,78 @@ def canvas_solid(delta):
         n = axis_normal(phi)
         wedges.append(cap_plane(axis_cylinder(rho_out + delta), C + n * delta, n))
     return trimesh.boolean.union(wedges, engine="manifold")
+
+
+def facet_frame(fid):
+    """(phase, radial unit vector) of one facet, by index from the inside out."""
+    _, phi = canvas_facets()[fid - 1]
+    return phi, -np.cos(phi) * G + np.sin(phi) * ZAX
+
+
+def relief_solids(delta):
+    """The artwork, raised off its facet along the motion.
+
+    Each facet is normal to the motion, so a relief that is a height field over
+    the facet is automatically one in the design plan: no angle to check. Flat
+    artwork gets one cap plane parallel to the facet; the cube gets three, tilted
+    to meet at its apex, and the lower envelope of those three is the near half of
+    a cube squashed onto the surface.
+    """
+    import json as _json
+    from svg_content import artwork as _artwork
+
+    tpl = os.path.join(ROOT, "docs", "templates")
+    spec_path = os.path.join(tpl, "relief.json")
+    if not os.path.exists(spec_path):
+        return []
+    meta = {e["facet"]: e for e in
+            _json.load(open(os.path.join(tpl, "templates.json")))}
+    out = []
+    for item in _json.load(open(spec_path)):
+        fid = item["facet"]
+        geom, _ = _artwork(os.path.join(tpl, item["file"]))
+        if geom.is_empty:
+            continue
+        m = meta[fid]
+        phi, radial = facet_frame(fid)
+        n = axis_normal(phi)
+
+        def to_wr(px, py):
+            return px + m["w0"], m["r1"] - py
+
+        def lift(px, py):
+            w, rho = to_wr(px, py)
+            return tuple(C + w * E + rho * radial)
+
+        # the artwork keeps its nominal width; the cavity takes the whole gap
+        fp = geom_preimage(content_offset(geom, delta), lift, seg=1.0)
+        solid = prism(fp, 1, 28, 14)
+        if item["kind"] == "flat":
+            base = C + (m["w0"] + 0.0) * E          # any point on the facet plane
+            origin = C + n * (float(n @ C) * 0.0)   # plane through C at phase phi
+            solid = cap_plane(solid, C + n * (item["height"] + delta), n)
+        else:
+            apex_w, apex_r = to_wr(*item["apex"])
+            apex = (C + apex_w * E + apex_r * radial
+                    + n * (item["height"] + delta))
+            for k in range(len(item["corners"])):
+                c0 = item["corners"][k]
+                c1 = item["corners"][(k + 1) % len(item["corners"])]
+                # a cube seen down its diagonal has a hexagonal silhouette
+                # whose corners ALTERNATE in height: the three the edges run to
+                # sit at half the apex height, the three between them at zero.
+                # Each face is the plane through the apex and two of the former,
+                # and it then meets the corner between them at exactly zero.
+                half = 0.5 * item["height"]
+                p0 = np.array(lift(*c0)) + n * (half + delta)
+                p1 = np.array(lift(*c1)) + n * (half + delta)
+                nk = np.cross(p0 - apex, p1 - apex)
+                nk = nk / np.linalg.norm(nk)
+                if nk @ n < 0:
+                    nk = -nk
+                solid = cap_plane(solid, apex, nk)
+        out.append(solid)
+    return out
 
 
 def canvas_footprint():
@@ -393,9 +467,14 @@ def build_L_rot(delta, art=()):
     built = trimesh.boolean.union(
         [outer, trimesh.boolean.intersection([fan, add], engine="manifold")],
         engine="manifold")
-    return trimesh.boolean.difference(
+    built = trimesh.boolean.difference(
         [built, trimesh.boolean.difference([sub, fan], engine="manifold")],
         engine="manifold")
+    if CONTENT_R:
+        rel = relief_solids(delta)
+        if rel:
+            built = trimesh.boolean.union([built] + rel, engine="manifold")
+    return built
 
 
 # --------------------------------- build -------------------------------------

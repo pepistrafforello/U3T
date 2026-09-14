@@ -87,6 +87,14 @@ for shot in shots:
     if FILTER and FILTER not in shot["name"]:
         continue
     scn = clear_scene()
+    if shot.get("sun"):
+        # a per-shot key light, for raking passes over shallow relief
+        for ob in list(bpy.data.objects):
+            if ob.type == "LIGHT" and ob.name == "Sun":
+                ob.rotation_mode = "QUATERNION"
+                ob.rotation_quaternion = Vector(shot["sun"]).to_track_quat("-Z", "Y")
+                ob.data.energy = 4.0
+                ob.data.angle = 0.05
     mats = {k: make_material(k, v) for k, v in COLORS.items()}
     for path, matname in shot["stls"]:
         for obj in import_stl(path):

@@ -219,5 +219,29 @@ def inject(fid, geom, name):
 
 
 inject(4, top, "Terrier CDP")
-inject(3, cube, "the cube")
+# The three edges are RIDGES on a cube, not valleys: the pyramid raises them by
+# itself where its faces meet. Engraving them as grooves would cut away exactly
+# the feature the relief creates, so the artwork is the plain silhouette and the
+# grooves survive only as the way the three edge directions were found.
+inject(3, sil_s, "the cube silhouette")
 inject(2, bot, "Titan Technologies")
+
+# ---------------------------------------------------------- the relief spec
+# The cube is not flat: its three faces are the near half of a real cube, cut
+# perpendicular to the view direction and squashed. Each face is the plane
+# through the apex and two alternating corners of the hexagon, and the surface
+# is the lower envelope of the three -- which is exactly what the drawing draws.
+RELIEF_TEXT, RELIEF_CUBE = 0.8, 1.1
+chosen = [a for k, (a, _) in enumerate(verts) if k % 2 == 0]
+corners = [[cx + scale * r * np.cos(a), cy + scale * r * np.sin(a)]
+           for a, (_, r) in zip(chosen, [verts[k] for k in range(0, len(verts), 2)])]
+spec = [
+    dict(facet=4, file="facet_4.svg", kind="flat", height=RELIEF_TEXT),
+    dict(facet=3, file="facet_3.svg", kind="pyramid", height=RELIEF_CUBE,
+         apex=[cx, cy], corners=corners),
+    dict(facet=2, file="facet_2.svg", kind="flat", height=RELIEF_TEXT),
+]
+with open(os.path.join(TPL, "relief.json"), "w") as fh:
+    json.dump(spec, fh, indent=1)
+print(f"  relief spec: text {RELIEF_TEXT} mm, cube apex {RELIEF_CUBE} mm, "
+      f"corners at {[round(np.degrees(a)) for a in chosen]} deg")

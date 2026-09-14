@@ -109,6 +109,29 @@ def artwork(svg_path, flatness=FLATNESS):
     return unary_union(out) if out else Polygon(), skipped
 
 
+def narrowest(geom, res=0.015):
+    """Width of the thinnest stroke, from the ridge of the distance transform.
+
+    Eroding and measuring the leftover area counts the sharp corner of every
+    glyph, so text always looked thin no matter how heavy it was. The ridge of
+    the distance transform is the centreline of each stroke, and twice its value
+    there is the stroke width; a low percentile finds the narrowest one.
+    """
+    import numpy as _np
+    import shapely as _sh
+    from scipy.ndimage import distance_transform_edt, grey_dilation
+    x0, y0, x1, y1 = geom.bounds
+    xs = x0 - res + _np.arange(int((x1 - x0) / res) + 4) * res
+    ys = y0 - res + _np.arange(int((y1 - y0) / res) + 4) * res
+    X, Y = _np.meshgrid(xs, ys)
+    m = _sh.contains_xy(geom, X.ravel(), Y.ravel()).reshape(Y.shape)
+    if not m.any():
+        return 0.0
+    dt = distance_transform_edt(m) * res
+    ridge = m & (dt >= grey_dilation(dt, size=5) - 1e-9) & (dt > res)
+    return 2.0 * _np.percentile(dt[ridge], 5) if ridge.any() else 0.0
+
+
 def check(geom, facet=None, safe=1.0, min_feature=g.MIN_FEATURE):
     """Report what would go wrong before it reaches the printer."""
     problems = []
@@ -117,10 +140,10 @@ def check(geom, facet=None, safe=1.0, min_feature=g.MIN_FEATURE):
     if not parts:
         return ["no artwork found: is everything still live text, or stroked only?"]
 
-    thin = geom.difference(geom.buffer(-min_feature / 2).buffer(min_feature / 2))
-    if thin.area > 0.05:
-        problems.append(f"{thin.area:.2f} mm2 of stroke is thinner than "
-                        f"{min_feature} mm and will not print")
+    stroke = narrowest(geom)
+    if stroke < min_feature:
+        problems.append(f"thinnest stroke is {stroke:.2f} mm, under the "
+                        f"{min_feature} mm minimum")
     gaps = geom.buffer(min_feature / 2).buffer(-min_feature / 2).difference(geom)
     if gaps.area > 0.05:
         problems.append(f"{gaps.area:.2f} mm2 of gap between strokes is under "

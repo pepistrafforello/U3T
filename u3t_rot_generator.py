@@ -2,7 +2,7 @@
 U3T rotation edition
 --------------------
 Same puzzle contract as the straight edition (identical dovetail seam on all four
-faces, hidden QR + title interface), but the two parts separate by a ROTATION
+faces, hidden interface in the middle), but the two parts separate by a ROTATION
 about an external axis — the "extrusion along a curve of constant curvature"
 from the original notes, done exactly.
 
@@ -34,7 +34,7 @@ from shapely.ops import unary_union
 from u3t_generator import (
     L, H, BAND_Z, CLR, TITLE, SUBTITLE, SIGNATURE, TITLE_BOX, SUB_BOX,
     buffered, polys_of, text_geometry, fit_into_box, qr_geometry, stock_box,
-    clean_thin, content_offset, face_key_profile, FACE_SPECS,
+    clean_thin, content_offset, face_key_profile, FACE_SPECS, weld,
 )
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -529,10 +529,19 @@ def main():
     bottom = trimesh.boolean.difference([bottom, sig_m], engine="manifold")
 
     print(f"bottom: {len(bottom.faces)} faces, top: {len(top.faces)} faces")
+    bottom, top = weld(bottom), weld(top)
+    print(f"welded: bottom {len(bottom.faces)} faces, top {len(top.faces)} faces")
     bottom.export(os.path.join(STL, "U3T_rot_bottom.stl"))
     top.export(os.path.join(STL, "U3T_rot_top.stl"))
     top_p = top.copy()
-    flip = trimesh.transformations.rotation_matrix(np.pi, [1, 0, 0], point=[50, 50, 7.5])
+    # exact 180 deg flip about the x axis through the seam: y -> 2*cy - y,
+    # z -> 2*cz - z. Writing it out avoids the 1e-16 terms that
+    # rotation_matrix(pi, ...) carries, which survive into float32 STL and
+    # collapse vertex pairs into non-manifold edges.
+    flip = np.array([[1.0, 0.0, 0.0, 0.0],
+                     [0.0, -1.0, 0.0, 2.0 * 50.0],
+                     [0.0, 0.0, -1.0, 2.0 * 7.5],
+                     [0.0, 0.0, 0.0, 1.0]])
     top_p.apply_transform(flip)
     top_p.apply_translation([0, 0, -top_p.bounds[0][2]])
     top_p.export(os.path.join(STL, "U3T_rot_top_print.stl"))
@@ -551,6 +560,20 @@ def main():
                             volume_mm3=round(vol, 1), bounds=m.bounds.tolist())
         print(f"{name}: watertight={wt} winding={wc} bodies={bodies} "
               f"volume={vol:.0f} mm^3 bounds={np.round(m.bounds, 2).tolist()} "
+              f"-> {'PASS' if ok else 'FAIL'}")
+
+    # what reaches the printer is the FILE, not the mesh in memory: STL is
+    # float32, so an export can collapse vertex pairs that were distinct in
+    # double precision and open non-manifold edges. Re-read every file.
+    report["files"] = {}
+    for fn in ("U3T_rot_bottom.stl", "U3T_rot_top.stl", "U3T_rot_top_print.stl"):
+        f = trimesh.load(os.path.join(STL, fn))
+        wt, wc = f.is_watertight, f.is_winding_consistent
+        bodies = len(f.split(only_watertight=True))
+        ok = wt and wc and bodies == 1
+        ok_all &= ok
+        report["files"][fn] = dict(watertight=wt, winding=wc, bodies=bodies)
+        print(f"file {fn}: watertight={wt} winding={wc} bodies={bodies} "
               f"-> {'PASS' if ok else 'FAIL'}")
 
     # the four faces must show the same dovetail, or it is not this puzzle

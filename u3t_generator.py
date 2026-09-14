@@ -374,6 +374,30 @@ def plateau_plan(delta=0.0, base=False):
     return ring[:, :2]
 
 
+def weld(mesh, digits=5):
+    """Fuse vertices coincident to 1e-`digits` mm, and drop what becomes degenerate.
+
+    The boolean kernel leaves the occasional vertex pair half a micron apart. In
+    double precision that is harmless. STL is float32: at 100 mm its grid spacing
+    is about 6e-6 mm, so a rigid re-orientation can round such a pair onto the same
+    point and tear the mesh. That is exactly how the flipped print copy of the
+    rotation top once wrote out with six non-manifold edges while the mesh it was
+    copied from verified watertight. Welding first makes the export independent of
+    the orientation it is written in.
+
+    Dropping ONLY faces with a repeated vertex index is what makes this safe: such
+    a face contributes a doubled edge that cancels, so it cannot open a hole.
+    Dropping slivers by area instead can, and does.
+    """
+    m = mesh.copy()
+    m.merge_vertices(digits_vertex=digits)
+    f = m.faces
+    keep = (f[:, 0] != f[:, 1]) & (f[:, 1] != f[:, 2]) & (f[:, 2] != f[:, 0])
+    m.update_faces(keep)
+    m.remove_unreferenced_vertices()
+    return m
+
+
 def stock_box():
     t = trimesh.transformations.translation_matrix([L / 2, L / 2, H / 2])
     return trimesh.creation.box(extents=[L, L, H], transform=t)
@@ -474,11 +498,20 @@ def main():
 
     print(f"bottom: {len(bottom.faces)} faces, top: {len(top.faces)} faces")
 
+    bottom, top = weld(bottom), weld(top)
+    print(f"welded: bottom {len(bottom.faces)} faces, top {len(top.faces)} faces")
     bottom.export(os.path.join(STL, "U3T_bottom.stl"))
     top.export(os.path.join(STL, "U3T_top.stl"))
     # print-ready top: flipped 180 deg about x through the part center
     top_p = top.copy()
-    flip = trimesh.transformations.rotation_matrix(np.pi, [1, 0, 0], point=[L / 2, L / 2, H / 2])
+    # exact 180 deg flip about the x axis through the seam: y -> 2*cy - y,
+    # z -> 2*cz - z. Writing it out avoids the 1e-16 terms that
+    # rotation_matrix(pi, ...) carries, which survive into float32 STL and
+    # collapse vertex pairs into non-manifold edges.
+    flip = np.array([[1.0, 0.0, 0.0, 0.0],
+                     [0.0, -1.0, 0.0, L],
+                     [0.0, 0.0, -1.0, H],
+                     [0.0, 0.0, 0.0, 1.0]])
     top_p.apply_transform(flip)
     top_p.apply_translation([0, 0, -top_p.bounds[0][2]])
     top_p.export(os.path.join(STL, "U3T_top_print.stl"))
@@ -499,6 +532,20 @@ def main():
                             bodies=bodies, bounds=bnd)
         print(f"{name}: watertight={wt} winding={wc} bodies={bodies} volume={vol:.0f} mm^3 "
               f"bounds={np.round(m.bounds, 2).tolist()} -> {'PASS' if ok else 'FAIL'}")
+
+    # what reaches the printer is the FILE, not the mesh in memory: STL is
+    # float32, so an export can collapse vertex pairs that were distinct in
+    # double precision and open non-manifold edges. Re-read every file.
+    report["files"] = {}
+    for fn in ("U3T_bottom.stl", "U3T_top.stl", "U3T_top_print.stl"):
+        f = trimesh.load(os.path.join(STL, fn))
+        wt, wc = f.is_watertight, f.is_winding_consistent
+        bodies = len(f.split(only_watertight=True))
+        ok = wt and wc and bodies == 1
+        
+        report["files"][fn] = dict(watertight=wt, winding=wc, bodies=bodies)
+        print(f"file {fn}: watertight={wt} winding={wc} bodies={bodies} "
+              f"-> {'PASS' if ok else 'FAIL'}")
 
     # the four faces must show the same dovetail, or it is not this puzzle
     zs = np.arange(BAND_Z + 0.5, KEY_Z1 - CLR - 0.05, 0.1)

@@ -35,6 +35,23 @@
       ]
     ]
   },
+  "files": {
+    "U3T_rot_bottom.stl": {
+      "watertight": true,
+      "winding": true,
+      "bodies": 1
+    },
+    "U3T_rot_top.stl": {
+      "watertight": true,
+      "winding": true,
+      "bodies": 1
+    },
+    "U3T_rot_top_print.stl": {
+      "watertight": true,
+      "winding": true,
+      "bodies": 1
+    }
+  },
   "face_spread_mm": 0.0076807011521538016,
   "assembled_overlap_mm3": 0.0,
   "rotation_about_A": {
@@ -55,10 +72,10 @@
   "negative_controls_mm3": {
     "straight up 1mm": 68.42958868556768,
     "straight up 2mm": 172.31819205486318,
-    "flat diagonal 1mm": 217.19406035116845,
-    "flat diagonal 2mm": 598.7729923923034,
+    "flat diagonal 1mm": 217.1940602530958,
+    "flat diagonal 2mm": 598.7729920997541,
     "straight-d slide 2mm": 216.4999546439382,
-    "straight-d slide 5mm": 142.28471435639858,
-    "reverse rotation 1deg": 21710.063631492623
+    "straight-d slide 5mm": 142.28471435639867,
+    "reverse rotation 1deg": 21710.063640303142
   }
 }

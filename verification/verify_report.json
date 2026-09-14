@@ -35,6 +35,23 @@
       ]
     ]
   },
+  "files": {
+    "U3T_bottom.stl": {
+      "watertight": true,
+      "winding": true,
+      "bodies": 1
+    },
+    "U3T_top.stl": {
+      "watertight": true,
+      "winding": true,
+      "bodies": 1
+    },
+    "U3T_top_print.stl": {
+      "watertight": true,
+      "winding": true,
+      "bodies": 1
+    }
+  },
   "face_spread_mm": 0.0005566561206293841,
   "face_deviation_mm": 0.44424257195206707,
   "envelope": [

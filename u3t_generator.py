@@ -374,23 +374,31 @@ def plateau_plan(delta=0.0, base=False):
     return ring[:, :2]
 
 
-def weld(mesh, digits=5):
-    """Fuse vertices coincident to 1e-`digits` mm, and drop what becomes degenerate.
+def weld(mesh):
+    """Fuse vertices the STL file cannot tell apart, and drop what that degenerates.
 
-    The boolean kernel leaves the occasional vertex pair half a micron apart. In
-    double precision that is harmless. STL is float32: at 100 mm its grid spacing
-    is about 6e-6 mm, so a rigid re-orientation can round such a pair onto the same
-    point and tear the mesh. That is exactly how the flipped print copy of the
-    rotation top once wrote out with six non-manifold edges while the mesh it was
-    copied from verified watertight. Welding first makes the export independent of
-    the orientation it is written in.
+    STL stores float32, whose grid spacing at 100 mm is 7.6e-6 mm. The boolean
+    kernel leaves the occasional vertex pair far below that -- harmless in double
+    precision, fatal on the way out: both land on the same point once written, and
+    every face that used both tears open. That is how the flipped print copy of the
+    rotation top shipped with six non-manifold edges while the mesh it was copied
+    from verified watertight.
 
-    Dropping ONLY faces with a repeated vertex index is what makes this safe: such
-    a face contributes a doubled edge that cancels, so it cannot open a hole.
+    So repair at the precision the file will have, not above it: quantise to the
+    output grid FIRST, then merge exactly. Welding at a chosen tolerance instead
+    is guesswork at the same order as the grid -- 1e-5 mm looked safe until a 5 mm
+    cube relief slipped a pair through it.
+
+    Dropping ONLY faces that gain a repeated vertex index is what makes this safe:
+    such a face contributes a doubled edge that cancels, so it cannot open a hole.
     Dropping slivers by area instead can, and does.
+
+    A rigid transform puts the vertices back off the grid, so anything re-oriented
+    for printing has to be welded again after the move, not before.
     """
     m = mesh.copy()
-    m.merge_vertices(digits_vertex=digits)
+    m.vertices = m.vertices.astype(np.float32).astype(np.float64)
+    m.merge_vertices()
     f = m.faces
     keep = (f[:, 0] != f[:, 1]) & (f[:, 1] != f[:, 2]) & (f[:, 2] != f[:, 0])
     m.update_faces(keep)
@@ -514,6 +522,7 @@ def main():
                      [0.0, 0.0, 0.0, 1.0]])
     top_p.apply_transform(flip)
     top_p.apply_translation([0, 0, -top_p.bounds[0][2]])
+    top_p = weld(top_p)              # the move put the vertices back off the grid
     top_p.export(os.path.join(STL, "U3T_top_print.stl"))
 
     # ------------------------------ verification ------------------------------

@@ -544,6 +544,7 @@ def main():
                      [0.0, 0.0, 0.0, 1.0]])
     top_p.apply_transform(flip)
     top_p.apply_translation([0, 0, -top_p.bounds[0][2]])
+    top_p = weld(top_p)              # the move put the vertices back off the grid
     top_p.export(os.path.join(STL, "U3T_rot_top_print.stl"))
 
     # ------------------------------ verification ------------------------------

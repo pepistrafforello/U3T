@@ -406,6 +406,34 @@ def weld(mesh):
     return m
 
 
+def export_welded(mesh, path, nudge=1e-4, tries=12):
+    """Write an STL that is watertight AS WRITTEN, nudging the grid phase if needed.
+
+    weld() snaps to the float32 grid so nothing the file cannot distinguish stays
+    separate. Snapping can also do the opposite, though: two vertices on different
+    sheets of the surface land on one point and PINCH the mesh -- an edge used four
+    times rather than two. That is not a hole, and most slicers survive it, but it
+    fails is_watertight and a print service's checker will flag it.
+
+    Whether it happens depends on where the grid falls, which is an accident of the
+    translation. So: try, check, and if it pinched, shift the part by a ten-thousandth
+    of a millimetre and try again. It converges in one or two steps, and a sub-micron
+    shift of a part that sits on the bed anyway has no dimensional meaning.
+    """
+    for k in range(tries):
+        m = mesh.copy()
+        if k:
+            m.apply_translation([0.0, 0.0, k * nudge])
+        m = weld(m)
+        if m.is_watertight and len(m.split(only_watertight=True)) == 1:
+            m.export(path)
+            if k:
+                print(f"  {os.path.basename(path)}: grid phase nudged "
+                      f"{k * nudge * 1000:.1f} um to clear a pinch")
+            return m
+    raise RuntimeError(f"{path}: could not write a watertight file in {tries} tries")
+
+
 def stock_box():
     t = trimesh.transformations.translation_matrix([L / 2, L / 2, H / 2])
     return trimesh.creation.box(extents=[L, L, H], transform=t)
@@ -522,8 +550,7 @@ def main():
                      [0.0, 0.0, 0.0, 1.0]])
     top_p.apply_transform(flip)
     top_p.apply_translation([0, 0, -top_p.bounds[0][2]])
-    top_p = weld(top_p)              # the move put the vertices back off the grid
-    top_p.export(os.path.join(STL, "U3T_top_print.stl"))
+    export_welded(top_p, os.path.join(STL, "U3T_top_print.stl"))
 
     # ------------------------------ verification ------------------------------
     report = {}

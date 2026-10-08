@@ -34,7 +34,7 @@ from shapely.ops import unary_union
 from u3t_generator import (
     L, H, BAND_Z, CLR, TITLE, SUBTITLE, SIGNATURE, TITLE_BOX, SUB_BOX,
     buffered, polys_of, text_geometry, fit_into_box, qr_geometry, stock_box,
-    clean_thin, content_offset, face_key_profile, FACE_SPECS, weld,
+    clean_thin, content_offset, face_key_profile, FACE_SPECS, weld, export_welded,
 )
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -51,11 +51,26 @@ G = np.array([1.0, -1.0, 0.0]) / SQ2     # horizontal, perpendicular to axis
 ZAX = np.array([0.0, 0.0, 1.0])
 C = np.array([105.0, -105.0, -103.5])    # axis point: apex plan line x - y = 210
 
-KEY_Z0R, KEY_Z1R = 7.5, 12.0             # key: band -> top (4.5 mm tall)
-KEY_NECK_ZR = 8.8                        # neck before the flare: the shallow (far)
-                                         # faces have depth ratio ~0.44, so the lip
-                                         # starts at 0.44 x 1.3 = 0.57 mm depth
-KEY_HW0R, KEY_HW1R = 6.0, 10.0           # same widths as the straight edition
+KEY_Z0R, KEY_Z1R = 7.5, 13.0             # key: band -> top (5.5 mm tall)
+KEY_NECK_ZR = 7.7                        # the flare starts almost at the band, and
+KEY_FLARE_RUN = 0.5                      # opens over half a millimetre.
+# Why so abrupt: the flare's lateral wings are the only material at that width, and
+# on two of the four faces nothing backs them but the FACE SHADOW -- the strip of
+# the design plan that the side face sweeps as z runs over the key. A wing at
+# lateral offset w first appears at the height where the flare reaches w, so its
+# shadow is only as deep as the height left above it. Open the flare gradually and
+# the outermost wing appears at the very top, with no height left: a knife edge,
+# at any lean, which is what the first SLS print could not make (0.0-1.1 mm against
+# a 0.8 mm minimum). Open it at once and every wing gets the key's whole height.
+KEY_HW0R, KEY_HW1R = 8.0, 8.0            # straight-sided: no lateral flare
+# Measured on the shipped part and again on every reshape: a wing at lateral offset
+# w first exists at the height where the flare reaches w, and from there its depth
+# grows at the lean, ~0.33 mm per mm of height. It therefore needs 2.4 mm of key
+# above it to reach 0.8 mm -- and the key is 5.5 mm tall in total. No flare, however
+# abrupt and however placed, clears that on the two faces the orbits leave through.
+# So the key is straight-sided, and the undercut is the one this design always
+# actually relied on: the key LEANS along the opening motion. The negative controls
+# are the proof -- they still lock, and by more than the flared key managed.
 KEY_RAIL_R = 8.0
 # ---- the interface: a sawtooth fan ------------------------------------------
 # A single tilted plane is normal to the motion but runs out of a 15 mm slab
@@ -412,9 +427,17 @@ def rail_box(name, hw, depth):
 
 def key_footprints_rot(delta):
     """Design-plan footprints of the four keys (face trapezoid + anchor rail)."""
-    trap2d = Polygon([(50 - KEY_HW0R, KEY_Z0R), (50 + KEY_HW0R, KEY_Z0R),
-                      (50 + KEY_HW0R, KEY_NECK_ZR), (50 + KEY_HW1R, KEY_Z1R),
-                      (50 - KEY_HW1R, KEY_Z1R), (50 - KEY_HW0R, KEY_NECK_ZR)])
+    # waist to the neck, flare open over KEY_FLARE_RUN, then straight to the top;
+    # with KEY_HW0R == KEY_HW1R this degenerates to the straight-sided tenon
+    if abs(KEY_HW1R - KEY_HW0R) < 1e-9:
+        trap2d = shapely.box(50 - KEY_HW0R, KEY_Z0R, 50 + KEY_HW0R, KEY_Z1R)
+    else:
+        trap2d = Polygon([(50 - KEY_HW0R, KEY_Z0R), (50 + KEY_HW0R, KEY_Z0R),
+                          (50 + KEY_HW0R, KEY_NECK_ZR),
+                          (50 + KEY_HW1R, KEY_NECK_ZR + KEY_FLARE_RUN),
+                          (50 + KEY_HW1R, KEY_Z1R), (50 - KEY_HW1R, KEY_Z1R),
+                          (50 - KEY_HW1R, KEY_NECK_ZR + KEY_FLARE_RUN),
+                          (50 - KEY_HW0R, KEY_NECK_ZR)])
     out = []
     for name, lift in FACE_LIFT.items():
         tb = buffered(trap2d, delta)
@@ -544,8 +567,7 @@ def main():
                      [0.0, 0.0, 0.0, 1.0]])
     top_p.apply_transform(flip)
     top_p.apply_translation([0, 0, -top_p.bounds[0][2]])
-    top_p = weld(top_p)              # the move put the vertices back off the grid
-    top_p.export(os.path.join(STL, "U3T_rot_top_print.stl"))
+    export_welded(top_p, os.path.join(STL, "U3T_rot_top_print.stl"))
 
     # ------------------------------ verification ------------------------------
     report = {}

@@ -89,6 +89,7 @@ tools/
   svg_content.py          reads artwork back off a template, and checks it is printable
   lockup_layout.py        lays out the shipped lockup across three facets
   fan_figures.py          the sawtooth figures, and the shot list for the render
+  key_figures.py          the dovetail wing measured before and after the reshape
   prep_shots.py           poses the verified STLs and emits the shot list
   blender_render.py       headless Cycles renderer for the photographic figures
   postprocess.py          flatten / crop / montage / sanity-check the renders
@@ -150,7 +151,9 @@ carries a single tilted band, blank for the moment, while its content is redesig
 | opening motion | translation along **d** = (0.7, 0.7, 1) | rotation of ≈ 12° about an external axis |
 | axis / direction | 44.7° off vertical, diagonal in plan | direction (1, 1, 0)/√2 through (105, −105, −103.5) mm |
 | walls | planar, parallel to **d** | patches of cylinders coaxial with the axis |
+| key | flared dovetail, 6 → 10 mm half-width | straight-sided, 8 mm half-width — see below |
 | hidden interface | one tilted band, 30°, blank | a five-facet fan, 3553 mm², carrying relief |
+| process it is built for | FDM, 0.5 mm minimum wall | SLS, 0.8 mm minimum wall |
 | generator | `u3t_generator.py` | `u3t_rot_generator.py` |
 | print files | `stl/U3T_bottom.stl`, `stl/U3T_top_print.stl` | `stl/U3T_rot_bottom.stl`, `stl/U3T_rot_top_print.stl` |
 | report | `verification/verify_report.json` | `verification/verify_report_rot.json` |
@@ -303,8 +306,9 @@ The rotation edition inherits every one of those and adds its own, at the top of
 | parameter | shipped | meaning |
 |---|---|---|
 | `E`, `C` | (1, 1, 0)/√2 through (105, −105, −103.5) | the rotation axis |
-| `KEY_Z0R`, `KEY_Z1R` | 7.5, 12.0 | the key is 4.5 mm tall here rather than 4.0 |
-| `KEY_NECK_ZR` | 8.8 | the far faces have depth ratio ≈ 0.44, so the lip has to start later |
+| `KEY_Z0R`, `KEY_Z1R` | 7.5, 13.0 | the key is 5.5 mm tall here rather than 4.0 |
+| `KEY_HW0R`, `KEY_HW1R` | 8.0, 8.0 | equal — the key is straight-sided, no lateral flare |
+| `KEY_NECK_ZR`, `KEY_FLARE_RUN` | 7.7, 0.5 | kept for a flared variant; inert while the widths are equal |
 | `KEY_RAIL_R` | 8.0 | interior anchor rail behind each key |
 | `CANVAS_Z_LO`, `CANVAS_Z_HI` | 4.5, 13.5 | the slice of the slab the fan may use |
 | `CANVAS_INSET` | 14.0 | keep the canvas this far from the side faces |
@@ -358,19 +362,20 @@ generator attacks its own output before it exits, and writes the results to `ver
 
 | check | straight edition | rotation edition |
 |---|---|---|
-| bottom part watertight, consistent winding | yes — 80 896 mm³ | yes — 82 414 mm³ |
-| top part watertight, consistent winding | yes — 65 782 mm³ | yes — 63 380 mm³ |
+| bottom part watertight, consistent winding | yes — 80 896 mm³ | yes — 83 146 mm³ |
+| top part watertight, consistent winding | yes — 65 782 mm³ | yes — 62 682 mm³ |
 | **connected bodies per part** | 1 and 1 | 1 and 1 |
 | **the files as written** — re-read from disk | 3 of 3 watertight, 1 body | 3 of 3 watertight, 1 body |
-| **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.008 mm |
+| **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.000 mm |
 | assembly envelope | exactly 100 × 100 × 15 | exactly 100 × 100 × 15 |
 | assembled overlap | 0.000000 mm³ | 0.000000 mm³ |
 | overlap through the full opening motion | 0.000000 mm³ at 14 stations, t = 0.05 … 40 mm | 0.000000 mm³ at 12 stations, θ = 0.05° … 25° |
-| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 68.7 / 172.3 mm³ |
-| **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 223.5 / 623.4 mm³ |
-| **control** — the *other* edition's move | — | collides: 216.9 mm³ (straight slide, 2 mm) |
-| **control** — reverse rotation, 1° | — | collides: 21 705 mm³ |
-| thin-feature scan (`dfm_scan.py`) | 15 and 14 patches, worst 0.27 mm² | 45 and 65 patches — see below |
+| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 87.1 / 207.2 mm³ |
+| **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 281.1 / 744.7 mm³ |
+| **control** — the *other* edition's move | — | collides: 287.2 mm³ (straight slide, 2 mm) |
+| **control** — reverse rotation, 1° | — | collides: 21 474 mm³ |
+| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 23 and 47 patches, 8.0 / 102.8 mm² |
+| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 272 and 226 patches, 82.9 / 180.6 mm² |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -454,6 +459,57 @@ width: a solid wedge, which is what a chamfer is. That test — *is there materi
 the one worth running on anything a thin-feature scan reports, and it is the test the shipped ledge
 would have failed.
 
+### The second print failure: a rule belongs to the process, not the design
+
+The rotation pair was ordered in **SLS** nylon, and came back with two of its four
+keys incomplete. The supplier's note was exact:
+
+> the wall thickness of the tongue-and-groove feature is insufficient for
+> manufacturing … For the SLS process, the minimum required wall thickness is
+> 0.8 mm.
+
+Everything in this repository had been verified to `MIN_FEATURE` = 0.55 mm, which
+is the FDM rule. **The band between 0.5 and 0.8 mm was invisible to every check
+here**, and that is exactly where the keys lived. `dfm_scan.py` now scans at both
+rules and prints them side by side, because the number is a property of the
+machine and not of the drawing.
+
+The feature that failed is specific, and worth naming. A flared dovetail widens as
+it rises; the extra width on each side is a **wing**. On two of the four faces
+nothing backs that wing but the *face shadow* — the strip of the design plan the
+side face sweeps as z runs over the key (the same shadow that drives the third
+design rule above). A wing at lateral offset *w* first exists at the height where
+the flare reaches *w*, and from there its depth grows at the lean, about a third of
+a millimetre per millimetre of height:
+
+![the key's wing, before and after](docs/article/images/f4_key_wing.png)
+
+So a wing needs **2.4 mm of key above it** to reach 0.8 mm, and the key is 5.5 mm
+tall in total. Opening the flare sooner only moves the problem outward; opening it
+abruptly makes it worse, because then the whole wing is shadow rather than rail.
+Measured across the obvious parameter space, no flare clears 0.8 mm on those two
+faces, at any numbers this axis allows.
+
+The flare therefore had to go. The rotation key is now **straight-sided**, and the
+undercut is the one the design always actually relied on — **the key leans along
+the opening motion**. Three things improved at once, which is the sign of a real
+simplification rather than a retreat:
+
+| | flared dovetail | straight tenon |
+|---|---|---|
+| thinnest material behind a key face | **0.04 mm** | **0.85 mm** |
+| back face, area under 0.8 mm | 17.3 mm², two broad wedges | 8.2 mm², two edge slivers |
+| face fidelity | 0.008 mm | **0.000 mm** — the four faces are now identical by construction |
+| lock against a straight lift, 1 mm | 68.7 mm³ | **87.1 mm³** |
+| lock against the straight edition's slide, 2 mm | 216.9 mm³ | **287.2 mm³** |
+
+What is left under 0.8 mm on a key is a sliver about half a millimetre wide along
+the tenon's two vertical edges, where a wall parallel to the motion meets the face
+at an oblique angle. That is a corner between two solid surfaces, not a wall: the
+material behind it grows immediately, and SLS renders it as a slightly rounded
+edge. It is the same class of feature that printed correctly on all four FDM parts
+and on two of the four SLS keys.
+
 ---
 
 ## Printing and assembly
@@ -461,8 +517,13 @@ would have failed.
 * **Files** — print `stl/U3T_bottom.stl` as oriented and `stl/U3T_top_print.stl` (already flipped
   exterior-side-down); or the `U3T_rot_*` pair for the rotation edition. `U3T_top.stl` and
   `U3T_rot_top.stl` are the assembly-oriented copies, for CAD and inspection.
+* **Process.** The straight edition is drawn for **FDM** and prints well in PLA. The rotation
+  edition is drawn for **SLS** — its key was reshaped to clear SLS's 0.8 mm minimum wall, and the
+  powder bed needs no supports at all. Either part will print on either machine; only the minimum
+  feature differs, and `dfm_scan.py` reports both.
 * **No supports.** The leaning walls sit at 44.7°, right at the classic FDM limit; the fan's risers
   are trimmed at 45° for the same reason; every relief faces up on the bed in the print files.
+  SLS needs none of this, but costs nothing by it.
 * **Settings** — PLA, 0.2 mm layers (0.12 mm makes crisper relief), 3 perimeters, ≥ 15 % infill.
   Enable elephant-foot compensation (~0.1 mm) or deburr the first-layer edges: the band and the
   side faces have to mate flush.
@@ -501,6 +562,7 @@ The sawtooth figures are a separate, shorter pass, because the shot that shows t
 be framed on whatever is actually drawn on the templates:
 
 ```bash
+python tools/key_figures.py               # the key's wing, before and after
 python tools/fan_figures.py --shots       # frame the shot -> build/shots_readme.json
 blender -b --factory-startup -noaudio --python tools/blender_render.py -- \
         build/shots_readme.json build/readme_raw

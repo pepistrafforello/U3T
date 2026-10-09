@@ -67,16 +67,24 @@ ZAX = np.array([0.0, 0.0, 1.0])
 C = np.array([65.0, -65.0, -103.5])      # axis point: apex plan line x - y = 130
 
 KEY_Z0R, KEY_Z1R = 7.5, 13.0             # key: band -> top (5.5 mm tall)
-KEY_NECK_ZR = 7.7                        # the flare starts almost at the band, and
-KEY_FLARE_RUN = 0.5                      # opens over half a millimetre.
-# Why so abrupt: the flare's lateral wings are the only material at that width, and
-# on two of the four faces nothing backs them but the FACE SHADOW -- the strip of
-# the design plan that the side face sweeps as z runs over the key. A wing at
-# lateral offset w first appears at the height where the flare reaches w, so its
-# shadow is only as deep as the height left above it. Open the flare gradually and
-# the outermost wing appears at the very top, with no height left: a knife edge,
-# at any lean, which is what the first SLS print could not make (0.0-1.1 mm against
-# a 0.8 mm minimum). Open it at once and every wing gets the key's whole height.
+KEY_NECK_ZR = 7.7                        # the flare starts just above the band and
+KEY_FLARE_RUN = 4.0                      # opens over 4 of the key's 5.5 mm, so the
+                                         # dovetail is a dovetail to look at: the
+                                         # width climbs over 67 % of the key's
+                                         # height, against 65 % on the pair that
+                                         # was printed.
+# The wings -- the part of the key wider than its waist -- are the only material at
+# that width, and on two of the four faces nothing backs them but the FACE SHADOW:
+# the strip of the design plan the side face sweeps as z runs over the key. A wing
+# at lateral offset w first exists at the height the flare reaches w, and thickens
+# from zero from there, so it needs height above it to become buildable.
+#
+# That argues for opening the flare abruptly, and this did, over 0.5 mm. It was
+# wrong twice over. It made the key a rectangle with a lip at its foot -- the width
+# climbed over 5 % of the key's height, so there was no dovetail left to see -- and
+# it did not even help: measured at this axis, a 4 mm flare run leaves 5.6 mm2 of
+# wing under 0.8 mm against 7.6 mm2 for the abrupt one. The thin band follows the
+# flare line either way; slanting it makes it narrower, not wider.
 KEY_HW0R, KEY_HW1R = 6.0, 8.5            # waist / flare: 2.5 mm of wing a side
 # The wing -- the part of the key wider than its waist -- is backed, on two of the
 # four faces, by nothing but the face shadow, and its depth grows from zero at the

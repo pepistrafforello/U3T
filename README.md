@@ -151,7 +151,7 @@ carries a single tilted band, blank for the moment, while its content is redesig
 | opening motion | translation along **d** = (0.7, 0.7, 1) | rotation of ≈ 12° about an external axis |
 | axis / direction | 44.7° off vertical, diagonal in plan | direction (1, 1, 0)/√2 through (65, −65, −103.5) mm |
 | walls | planar, parallel to **d** | patches of cylinders coaxial with the axis |
-| key | flared dovetail, 6 → 10 mm half-width | flared, 6 → 8.5 mm half-width |
+| key | flared dovetail, 6 → 10 mm half-width | flared dovetail, 6 → 8.5 mm half-width |
 | hidden interface | one tilted band, 30°, blank | a three-facet fan, 1912 mm², carrying relief |
 | process it is built for | FDM, 0.5 mm minimum wall | SLS, 0.8 mm minimum wall |
 | generator | `u3t_generator.py` | `u3t_rot_generator.py` |
@@ -312,7 +312,7 @@ The rotation edition inherits every one of those and adds its own, at the top of
 | `E`, `C` | (1, 1, 0)/√2 through (65, −65, −103.5) | the rotation axis; apex plane x − y = 130 |
 | `KEY_Z0R`, `KEY_Z1R` | 7.5, 13.0 | the key is 5.5 mm tall here rather than 4.0 |
 | `KEY_HW0R`, `KEY_HW1R` | 6.0, 8.5 | waist and flare: 2.5 mm of dovetail wing a side |
-| `KEY_NECK_ZR`, `KEY_FLARE_RUN` | 7.7, 0.5 | the flare opens just above the band, over half a millimetre |
+| `KEY_NECK_ZR`, `KEY_FLARE_RUN` | 7.7, 4.0 | the flare opens just above the band, over 4 of the key’s 5.5 mm |
 | `KEY_RAIL_R` | 8.0 | interior anchor rail behind each key |
 | `CANVAS_Z_LO`, `CANVAS_Z_HI` | 3.0, 13.5 | the slice of the slab the fan may use |
 | `CANVAS_INSET` | 14.0 | keep the canvas this far from the side faces |
@@ -370,16 +370,16 @@ generator attacks its own output before it exits, and writes the results to `ver
 | top part watertight, consistent winding | yes — 65 782 mm³ | yes — 68 922 mm³ |
 | **connected bodies per part** | 1 and 1 | 1 and 1 |
 | **the files as written** — re-read from disk | 3 of 3 watertight, 1 body | 3 of 3 watertight, 1 body |
-| **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.019 mm |
+| **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.005 mm |
 | assembly envelope | exactly 100 × 100 × 15 | exactly 100 × 100 × 15 |
 | assembled overlap | 0.000000 mm³ | 0.000000 mm³ |
 | overlap through the full opening motion | 0.000000 mm³ at 14 stations, t = 0.05 … 40 mm | 0.000000 mm³ at 12 stations, θ = 0.05° … 25° |
-| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 161.9 / 283.7 mm³ |
+| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 160.3 / 283.0 mm³ |
 | **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 263.4 / 661.2 mm³ |
 | **control** — the *other* edition's move | — | collides: 315.2 mm³ (straight slide, 2 mm) |
 | **control** — reverse rotation, 1° | — | collides: 12 696 mm³ |
-| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 20 and 11 patches, 8.2 / 42.1 mm² |
-| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 153 and 124 patches, 42.8 / 102.2 mm² |
+| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 30 and 25 patches, 7.4 / 43.7 mm² |
+| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 135 and 108 patches, 35.3 / 101.0 mm² |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -556,23 +556,34 @@ What it bought, measured against the pair that came back from SLS:
 
 | | printed | now |
 |---|---|---|
-| key profile | dovetail, 11.7 → 19.1 mm | dovetail, 11.7 → 16.7 mm |
-| wing depth at the top of the key | 0.6 mm | **1.3 mm** |
-| thin-feature scan, SLS rule, bottom | 87.5 mm² | **42.8 mm²** |
-| thin-feature scan, SLS rule, top | 180.6 mm² | **102.2 mm²** |
-| lock against a straight 1 mm lift | 68.7 mm³ | **161.9 mm³** |
+| key profile | dovetail 11.7 → 19.1 mm, over 65 % of the height | dovetail 11.7 → 16.7 mm, over 67 % |
+| widening, as a share of the key's height | 65 % | **67 %** |
+| thin-feature scan, SLS rule, bottom | 87.5 mm² | **35.3 mm²** |
+| thin-feature scan, SLS rule, top | 180.6 mm² | **101.0 mm²** |
+| lock against a straight 1 mm lift | 68.7 mm³ | **160.3 mm³** |
 | canvas | 3553 mm² in five facets | 1912 mm² in three |
 
 And what it cost, stated plainly: **the canvas halved**, which is the conservation
 law being paid rather than a mistake, and the content came down with it — from a
-three-part lockup to a cube on one facet and `CDP` on another. Measured face-on
-with rays rather than by slicing, the key's *wing* is twice as thick but its
-lateral *edge* wedge is longer, because a 26° orbit meets a vertical face at a
-shallower angle; by that measure the thin area on the two difficult faces is
-17.3 → 18.2 mm², essentially unchanged. The improvement the supplier's own check
-sees is the halving above. Both numbers are in this README because they disagree,
-and the honest summary is: the feature that broke is twice as thick, the slice
-scan halves, and the total face-on thin area does not move.
+three-part lockup to a cube on one facet and `CDP` on another.
+
+Measured face-on with rays rather than by slicing, every key improves:
+
+| face-on, under 0.8 mm | printed | now |
+|---|---|---|
+| back / left (the two that failed) | 17.3 / 16.9 mm² | **12.9 / 12.9 mm²** |
+| front / right | 11.4 / 10.7 mm² | **8.1 / 8.2 mm²** |
+| all four | 56.2 mm² | **42.1 mm²** |
+
+One wrong turn is worth recording, because it was wrong twice and I shipped the
+claim before checking it. Reasoning that a wing needs height above it to thicken,
+I opened the flare abruptly — over 0.5 mm of the key's 5.5. That makes the key a
+rectangle with a lip at its foot: the width climbs over **5 %** of the key's
+height, so there is no dovetail left to see, and quoting its 11.7 → 16.7 mm as
+proof of one is just wrong. It did not even help. The thin band follows the flare
+line whichever way it is drawn, and slanting it makes it *narrower*: at this axis
+a 4 mm flare run leaves 5.6 mm² of wing under 0.8 mm against 7.6 mm² for the
+abrupt one. The flare now runs over 4 mm, and the key looks like what it is.
 
 ---
 

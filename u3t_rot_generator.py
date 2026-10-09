@@ -6,13 +6,28 @@ faces, hidden interface in the middle), but the two parts separate by a ROTATION
 about an external axis — the "extrusion along a curve of constant curvature"
 from the original notes, done exactly.
 
-Axis A: direction e = (1,1,0)/sqrt(2), through C = (105, -105, -103.5).
+Axis A: direction e = (1,1,0)/sqrt(2), through C = (65, -65, -103.5).
  - orbit planes are perpendicular to e, i.e. parallel to no side face;
- - the apex plane (vertical plane through A: x - y = 210) misses the block, so
-   every orbit rises monotonically inside the block -> any horizontal plane is
-   crossed once per orbit and flat band / plateau / relief tops remain valid;
- - the axis is far enough away that orbit slopes stay in ~43..61 deg over every
-   wall-bearing region (printable walls, decent key depth on all four faces).
+ - the apex plane (vertical plane through A: x - y = 130) misses the block by
+   30 mm, so every orbit rises monotonically inside the block -> any horizontal
+   plane is crossed once per orbit and flat band / relief tops stay valid;
+ - orbit slopes are ~26 deg, far past what FDM would bridge unsupported. That is
+   deliberate: this edition is built for SLS, where the powder bed holds every
+   overhang and the only rule is a 0.8 mm minimum wall.
+
+Why the axis moved in from x - y = 210 (Oct 2026). The dovetail's thickness and
+the canvas's width come from the same angle, the phase phi about the axis:
+
+    plan displacement per mm of height  = tan(phi)      thickens the key's wing
+    horizontal run of a facet over dz   = dz / tan(phi)   widens the canvas strip
+
+    so   strip width  x  wing rate  =  dz / sqrt(2),  a constant.
+
+A flared key cannot be made thick enough without narrowing the canvas, and no key
+PROFILE trades between them -- only the axis does. At x - y = 210 the wing grew
+too slowly to clear 0.8 mm before the key ran out of height, and SLS could not
+build two of the four keys. Bringing the apex plane in to 130 doubles the rate;
+deepening the fan from 9 to 10.5 mm buys back part of the strip width.
 
 Construction: identical pipeline to u3t_generator, with the linear shear
 replaced by the cylindrical "bend map" (vertical design lines <-> orbits) and
@@ -49,7 +64,7 @@ SQ2 = np.sqrt(2.0)
 E = np.array([1.0, 1.0, 0.0]) / SQ2      # axis direction
 G = np.array([1.0, -1.0, 0.0]) / SQ2     # horizontal, perpendicular to axis
 ZAX = np.array([0.0, 0.0, 1.0])
-C = np.array([105.0, -105.0, -103.5])    # axis point: apex plan line x - y = 210
+C = np.array([65.0, -65.0, -103.5])      # axis point: apex plan line x - y = 130
 
 KEY_Z0R, KEY_Z1R = 7.5, 13.0             # key: band -> top (5.5 mm tall)
 KEY_NECK_ZR = 7.7                        # the flare starts almost at the band, and
@@ -62,15 +77,14 @@ KEY_FLARE_RUN = 0.5                      # opens over half a millimetre.
 # the outermost wing appears at the very top, with no height left: a knife edge,
 # at any lean, which is what the first SLS print could not make (0.0-1.1 mm against
 # a 0.8 mm minimum). Open it at once and every wing gets the key's whole height.
-KEY_HW0R, KEY_HW1R = 8.0, 8.0            # straight-sided: no lateral flare
-# Measured on the shipped part and again on every reshape: a wing at lateral offset
-# w first exists at the height where the flare reaches w, and from there its depth
-# grows at the lean, ~0.33 mm per mm of height. It therefore needs 2.4 mm of key
-# above it to reach 0.8 mm -- and the key is 5.5 mm tall in total. No flare, however
-# abrupt and however placed, clears that on the two faces the orbits leave through.
-# So the key is straight-sided, and the undercut is the one this design always
-# actually relied on: the key LEANS along the opening motion. The negative controls
-# are the proof -- they still lock, and by more than the flared key managed.
+KEY_HW0R, KEY_HW1R = 6.0, 8.5            # waist / flare: 2.5 mm of wing a side
+# The wing -- the part of the key wider than its waist -- is backed, on two of the
+# four faces, by nothing but the face shadow, and its depth grows from zero at the
+# height the flare reaches it. It needs 0.8 / rate mm of key above it to become
+# buildable: 2.4 mm at the old axis, out of a 5.5 mm key, which no flare could
+# clear. With the axis in at x - y = 130 the rate doubles and the band halves.
+# The flare stays modest for the same reason: the thin area is the wing's width
+# times 0.8 / rate, so 2.5 mm of wing costs half what 5 mm would.
 KEY_RAIL_R = 8.0
 # ---- the interface: a sawtooth fan ------------------------------------------
 # A single tilted plane is normal to the motion but runs out of a 15 mm slab
@@ -92,10 +106,13 @@ KEY_RAIL_R = 8.0
 # dz*tan(phi), so the split is cos^2(phi) whatever the depth. Depth buys STRIP
 # WIDTH, and it is paid for in floor thickness under the canvas and in riser
 # height. 9 mm gives five strips of 12.7 to 17.5 mm.
-CANVAS_Z_LO = 4.5        # floor: what the bottom part keeps under the canvas
+CANVAS_Z_LO = 3.0        # floor: what the bottom part keeps under the canvas
 CANVAS_Z_HI = 13.5       # ceiling: the top part keeps 15 - this above it
 CANVAS_INSET = 14.0      # keep the canvas this far from the side faces
-CANVAS_MAX_LEAN = 45.0   # trim the fan where a riser would overhang more than this
+CANVAS_MAX_LEAN = 50.0   # cap the phase. SLS holds any overhang, but a facet near
+                         # vertical gives a strip near zero (phi 80 deg -> 1.9 mm)
+                         # and the inner facets go tangent enough to confuse the
+                         # boolean. 50 deg keeps every strip at 8.8 mm or wider.
 
 CONTENT_R = True                         # relief from docs/templates/*.svg
 QR_TOP_ZR = 12.2
@@ -438,18 +455,36 @@ def key_footprints_rot(delta):
                           (50 + KEY_HW1R, KEY_Z1R), (50 - KEY_HW1R, KEY_Z1R),
                           (50 - KEY_HW1R, KEY_NECK_ZR + KEY_FLARE_RUN),
                           (50 - KEY_HW0R, KEY_NECK_ZR)])
+    # The anchor edge is taken off the SHRUNKEN trapezoid for both halves, not off
+    # each half's own. Both rails then start on the same plan line, so they nest:
+    # with each keeping its own width and depth, rail(-CLR) is contained in
+    # rail(+CLR), and since the shadows nest too, so do the footprints.
+    #
+    # Reading it off each half's own offset trapezoid -- which is what this did --
+    # butts the rail to the trapezoid exactly, but puts the two anchors 2*CLR apart
+    # in height and therefore 2*CLR*lean apart in plan. That is 0.2 mm at the old
+    # axis, which still nested, and 0.4 mm the wrong way once the axis moved in:
+    # 5.8 mm^3 of the bottom part ended up inside the top on two of the four keys,
+    # with every other check still passing.
+    #
+    # Starting both on the shrunken edge keeps the exact butt for the bottom half,
+    # and leaves the top half's rail reaching a little further out -- into the
+    # 2*CLR band above the bottom key's top, which is the clearance, where extra
+    # groove is exactly what is wanted.
+    tb_lo = buffered(trap2d, -CLR)
+    zz_lo = [c[1] for c in tb_lo.exterior.coords]
     out = []
     for name, lift in FACE_LIFT.items():
         tb = buffered(trap2d, delta)
         trap = geom_preimage(tb, lift, seg=1.0)
-        # take the anchor edge off the OFFSET trapezoid, so the rail lands on it
-        # exactly at either clearance; a mitred offset moves a flare corner by
-        # more than delta, so these cannot be predicted from the nominal numbers
+        base = anchor_edge(name) == "base"
+        zr = min(zz_lo) if base else max(zz_lo)
+        # width from this half's own trapezoid, at the height the rail starts
         zz = [c[1] for c in tb.exterior.coords]
-        z_rail = min(zz) if anchor_edge(name) == "base" else max(zz)
-        xs = [c[0] for c in tb.exterior.coords if abs(c[1] - z_rail) < 1e-9]
+        ze = min(zz) if base else max(zz)
+        xs = [c[0] for c in tb.exterior.coords if abs(c[1] - ze) < 1e-9]
         hw = (max(xs) - min(xs)) / 2.0
-        rlift = (lambda zr: (lambda x, y: (x, y, zr)))(z_rail)
+        rlift = (lambda z0: (lambda x, y: (x, y, z0)))(zr)
         rail = geom_preimage(rail_box(name, hw, KEY_RAIL_R + delta), rlift, seg=1.0)
         fp = unary_union([trap, rail])
         if fp.geom_type != "Polygon":

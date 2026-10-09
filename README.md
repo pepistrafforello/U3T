@@ -149,10 +149,10 @@ carries a single tilted band, blank for the moment, while its content is redesig
 | | straight edition | rotation edition |
 |---|---|---|
 | opening motion | translation along **d** = (0.7, 0.7, 1) | rotation of ≈ 12° about an external axis |
-| axis / direction | 44.7° off vertical, diagonal in plan | direction (1, 1, 0)/√2 through (105, −105, −103.5) mm |
+| axis / direction | 44.7° off vertical, diagonal in plan | direction (1, 1, 0)/√2 through (65, −65, −103.5) mm |
 | walls | planar, parallel to **d** | patches of cylinders coaxial with the axis |
-| key | flared dovetail, 6 → 10 mm half-width | straight-sided, 8 mm half-width — see below |
-| hidden interface | one tilted band, 30°, blank | a five-facet fan, 3553 mm², carrying relief |
+| key | flared dovetail, 6 → 10 mm half-width | flared, 6 → 8.5 mm half-width |
+| hidden interface | one tilted band, 30°, blank | a three-facet fan, 1912 mm², carrying relief |
 | process it is built for | FDM, 0.5 mm minimum wall | SLS, 0.8 mm minimum wall |
 | generator | `u3t_generator.py` | `u3t_rot_generator.py` |
 | print files | `stl/U3T_bottom.stl`, `stl/U3T_top_print.stl` | `stl/U3T_rot_bottom.stl`, `stl/U3T_rot_top_print.stl` |
@@ -199,14 +199,18 @@ bottom solid  =  ⋃ₖ [ cylinder(ρ ≤ ρₖ₊₁) ∩ half-space(φ ≤ φ�
 
 ![Sections across both interfaces](docs/article/images/f3_sections.png)
 
-| facet | inner radius | tilt | strip width | length | canvas |
+| facet | tilt | strip width | length | canvas | carries |
 |---|---|---|---|---|---|
-| 1 | 152.6 mm | 45.0° | 12.7 mm | 38.0 mm | 251 mm² |
-| 2 | 165.3 mm | 40.7° | 13.8 mm | 75.6 mm | 790 mm² |
-| 3 | 179.1 mm | 37.1° | 14.9 mm | 94.6 mm | 1277 mm² |
-| 4 | 194.0 mm | 33.8° | 16.2 mm | 76.8 mm | 923 mm² |
-| 5 | 210.2 mm | 30.9° | 16.4 mm | 38.5 mm | 312 mm² |
-| | | | | | **3553 mm²** |
+| 1 | 50.0° | 13.7 mm | 89.2 mm | 1068 mm² | the cube, 11.2 mm |
+| 2 | 44.2° | 15.1 mm | 67.6 mm | 702 mm² | the word `CDP`, 8 mm cap |
+| 3 | 39.4° | 10.4 mm | 27.2 mm | 142 mm² | — |
+| | | | | **1912 mm²** | |
+
+The cube sits on facet 1 rather than the wider facet 2, which looks wrong until
+you measure it: these strips are slanted, so a bounding box badly overstates the
+room. Facet 2 is 15.1 mm wide and holds an 8.2 mm circle; facet 1 is 13.7 mm wide
+and holds 11.2 mm. The layout tool sizes the cube to the inscribed circle for
+exactly this reason.
 
 The radii step by a constant ratio K = (z_hi − z_axis) / (z_lo − z_axis) = 1.0833, which is why the
 strips widen across the fan; it is trimmed where a riser would overhang more than
@@ -305,14 +309,14 @@ The rotation edition inherits every one of those and adds its own, at the top of
 
 | parameter | shipped | meaning |
 |---|---|---|
-| `E`, `C` | (1, 1, 0)/√2 through (105, −105, −103.5) | the rotation axis |
+| `E`, `C` | (1, 1, 0)/√2 through (65, −65, −103.5) | the rotation axis; apex plane x − y = 130 |
 | `KEY_Z0R`, `KEY_Z1R` | 7.5, 13.0 | the key is 5.5 mm tall here rather than 4.0 |
-| `KEY_HW0R`, `KEY_HW1R` | 8.0, 8.0 | equal — the key is straight-sided, no lateral flare |
-| `KEY_NECK_ZR`, `KEY_FLARE_RUN` | 7.7, 0.5 | kept for a flared variant; inert while the widths are equal |
+| `KEY_HW0R`, `KEY_HW1R` | 6.0, 8.5 | waist and flare: 2.5 mm of dovetail wing a side |
+| `KEY_NECK_ZR`, `KEY_FLARE_RUN` | 7.7, 0.5 | the flare opens just above the band, over half a millimetre |
 | `KEY_RAIL_R` | 8.0 | interior anchor rail behind each key |
-| `CANVAS_Z_LO`, `CANVAS_Z_HI` | 4.5, 13.5 | the slice of the slab the fan may use |
+| `CANVAS_Z_LO`, `CANVAS_Z_HI` | 3.0, 13.5 | the slice of the slab the fan may use |
 | `CANVAS_INSET` | 14.0 | keep the canvas this far from the side faces |
-| `CANVAS_MAX_LEAN` | 45.0 | trim the fan where a riser would overhang more than this |
+| `CANVAS_MAX_LEAN` | 50.0 | cap the phase; SLS holds any overhang, but a near-vertical facet gives a strip near zero |
 | `CONTENT_R` | `True` | build the relief from `docs/templates/*.svg` |
 
 Three rules constrain the numbers, and all three were learned the hard way:
@@ -362,20 +366,20 @@ generator attacks its own output before it exits, and writes the results to `ver
 
 | check | straight edition | rotation edition |
 |---|---|---|
-| bottom part watertight, consistent winding | yes — 80 896 mm³ | yes — 83 146 mm³ |
-| top part watertight, consistent winding | yes — 65 782 mm³ | yes — 62 682 mm³ |
+| bottom part watertight, consistent winding | yes — 80 896 mm³ | yes — 77 420 mm³ |
+| top part watertight, consistent winding | yes — 65 782 mm³ | yes — 68 922 mm³ |
 | **connected bodies per part** | 1 and 1 | 1 and 1 |
 | **the files as written** — re-read from disk | 3 of 3 watertight, 1 body | 3 of 3 watertight, 1 body |
-| **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.000 mm |
+| **face fidelity** — do the four sides really match? | agree to 0.001 mm | agree to 0.019 mm |
 | assembly envelope | exactly 100 × 100 × 15 | exactly 100 × 100 × 15 |
 | assembled overlap | 0.000000 mm³ | 0.000000 mm³ |
 | overlap through the full opening motion | 0.000000 mm³ at 14 stations, t = 0.05 … 40 mm | 0.000000 mm³ at 12 stations, θ = 0.05° … 25° |
-| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 87.1 / 207.2 mm³ |
-| **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 281.1 / 744.7 mm³ |
-| **control** — the *other* edition's move | — | collides: 287.2 mm³ (straight slide, 2 mm) |
-| **control** — reverse rotation, 1° | — | collides: 21 474 mm³ |
-| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 23 and 47 patches, 8.0 / 102.8 mm² |
-| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 272 and 226 patches, 82.9 / 180.6 mm² |
+| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 161.9 / 283.7 mm³ |
+| **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 263.4 / 661.2 mm³ |
+| **control** — the *other* edition's move | — | collides: 315.2 mm³ (straight slide, 2 mm) |
+| **control** — reverse rotation, 1° | — | collides: 12 696 mm³ |
+| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 20 and 11 patches, 8.2 / 42.1 mm² |
+| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 153 and 124 patches, 42.8 / 102.2 mm² |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -490,10 +494,9 @@ abruptly makes it worse, because then the whole wing is shadow rather than rail.
 Measured across the obvious parameter space, no flare clears 0.8 mm on those two
 faces, at any numbers this axis allows.
 
-The flare therefore had to go. The rotation key is now **straight-sided**, and the
-undercut is the one the design always actually relied on — **the key leans along
-the opening motion**. Three things improved at once, which is the sign of a real
-simplification rather than a retreat:
+The flare therefore had to go *at that axis*. The rotation key became
+**straight-sided**, with the undercut carried by the lean alone. Three things
+improved at once:
 
 | | flared dovetail | straight tenon |
 |---|---|---|
@@ -503,12 +506,73 @@ simplification rather than a retreat:
 | lock against a straight lift, 1 mm | 68.7 mm³ | **87.1 mm³** |
 | lock against the straight edition's slide, 2 mm | 216.9 mm³ | **287.2 mm³** |
 
-What is left under 0.8 mm on a key is a sliver about half a millimetre wide along
-the tenon's two vertical edges, where a wall parallel to the motion meets the face
+With the axis later moved (next section) the flare came back; what follows
+described the straight-sided interim. What is left under 0.8 mm on a key is a
+sliver about half a millimetre wide along its two vertical edges, where a wall parallel to the motion meets the face
 at an oblique angle. That is a corner between two solid surfaces, not a wall: the
 material behind it grows immediately, and SLS renders it as a slightly rounded
 edge. It is the same class of feature that printed correctly on all four FDM parts
 and on two of the four SLS keys.
+
+### Getting the dovetail back: move the axis, not the key
+
+Removing the flare made the part buildable and cost the object its premise. A
+rectangular tab does not say *this cannot be lifted*; a dovetail does, and every
+face saying so is the whole trick. So the next question was whether the flare
+could be made thick enough instead of deleted — and it can, but only by moving the
+axis, because of a conservation law that is worth stating plainly:
+
+```
+canvas strip width  x  key wing thickness rate  =  fan depth / sqrt(2)
+```
+
+Both come from the same angle φ about the axis. The plan displaces `tan φ` per mm
+of height, which is what thickens the wing; a facet's horizontal run over a depth
+Δz is `Δz / tan φ`, which is the strip. **You cannot thicken the dovetail without
+narrowing the canvas**, at a fixed fan depth — and no key *profile* trades between
+them, only the axis does. That is why none of the profile changes worked.
+
+The apex plane therefore came in from `x − y = 210` to `x − y = 130`, which doubles
+the rate, and the fan went from 9 to 10.5 mm deep to buy back part of the strip.
+The orbits are now ~26° off horizontal, far past anything FDM would bridge
+unsupported; in a powder bed that costs nothing.
+
+Two things had to be repaired to get there, both of which had been silently
+relying on the old shallow lean:
+
+* **The anchor rail stopped nesting.** It was pre-imaged at the *offset*
+  trapezoid's edge, so the two halves' rails sat `2·CLR` apart in height and
+  therefore `2·CLR·lean` apart in plan. That is 0.2 mm at the old axis, which
+  nested; 0.4 mm the wrong way at the new one, which put **5.8 mm³ of the bottom
+  part inside the top** on two of the four keys while every other check passed.
+  Both rails now start on the shrunken trapezoid's edge, so they nest by
+  construction, and each keeps its own width.
+* **`weld()` was being applied unconditionally on export.** It is a repair, and
+  snapping to the float32 grid can fuse vertices from different sheets and pinch a
+  mesh that was already sound — which it did to every grid phase once the fan's
+  facets came close to tangent. The export now checks the written file first.
+
+What it bought, measured against the pair that came back from SLS:
+
+| | printed | now |
+|---|---|---|
+| key profile | dovetail, 11.7 → 19.1 mm | dovetail, 11.7 → 16.7 mm |
+| wing depth at the top of the key | 0.6 mm | **1.3 mm** |
+| thin-feature scan, SLS rule, bottom | 87.5 mm² | **42.8 mm²** |
+| thin-feature scan, SLS rule, top | 180.6 mm² | **102.2 mm²** |
+| lock against a straight 1 mm lift | 68.7 mm³ | **161.9 mm³** |
+| canvas | 3553 mm² in five facets | 1912 mm² in three |
+
+And what it cost, stated plainly: **the canvas halved**, which is the conservation
+law being paid rather than a mistake, and the content came down with it — from a
+three-part lockup to a cube on one facet and `CDP` on another. Measured face-on
+with rays rather than by slicing, the key's *wing* is twice as thick but its
+lateral *edge* wedge is longer, because a 26° orbit meets a vertical face at a
+shallower angle; by that measure the thin area on the two difficult faces is
+17.3 → 18.2 mm², essentially unchanged. The improvement the supplier's own check
+sees is the halving above. Both numbers are in this README because they disagree,
+and the honest summary is: the feature that broke is twice as thick, the slice
+scan halves, and the total face-on thin area does not move.
 
 ---
 

@@ -1,17 +1,18 @@
 # Drawing on the U3T canvas
 
-Five templates, one per facet of the rotation edition's sawtooth interface, plus
-one sheet carrying all five. They are **millimetre-true SVG**: one user unit is
+Three templates, one per facet of the rotation edition's sawtooth interface, plus
+one sheet carrying all three. They are **millimetre-true SVG**: one user unit is
 one millimetre, and a millimetre on the page is a millimetre on the printed part.
 
 | file | size | area | tilt |
 |---|---|---|---|
-| `facet_1.svg` | 38.0 × 12.7 mm | 251 mm² | 45.0° |
-| `facet_2.svg` | 75.6 × 13.8 mm | 790 mm² | 40.7° |
-| `facet_3.svg` | 94.6 × 14.9 mm | 1277 mm² | 37.0° |
-| `facet_4.svg` | 76.8 × 16.2 mm | 923 mm² | 33.8° |
-| `facet_5.svg` | 38.5 × 16.4 mm | 312 mm² | 30.9° |
-| `canvas_combined.svg` | — | **3553 mm²** | all five |
+| `facet_1.svg` | 89.2 x 13.7 mm | 1068 mm2 | 50.0 deg |
+| `facet_2.svg` | 67.6 x 15.1 mm | 702 mm2 | 44.2 deg |
+| `facet_3.svg` | 27.2 x 10.4 mm | 142 mm2 | 39.4 deg |
+| `canvas_combined.svg` | - | **1912 mm2** | all three |
+
+Three facets, not the five there used to be: moving the rotation axis in to make
+the dovetail buildable halved the canvas, which is the trade that axis makes.
 
 The shapes are read off the built mesh, so they are exactly the surface that
 exists — clearance, curtain and printable-angle trim already taken off. The

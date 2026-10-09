@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
-"""Lay out the Terrier CDP lockup on facets 4, 3 and 2, and write the SVGs."""
+"""Lay out the CDP mark on the fan: the cube on one facet, the word on another.
+
+Moving the rotation axis in to thicken the dovetail halved the canvas -- that is
+the trade the axis makes, strip width against wing thickness -- so the fan now has
+three usable facets instead of five, and the content is two pieces instead of
+three. The cube goes on the widest strip, because it needs width; the word goes on
+the longest one, because it needs length.
+"""
 import json
 import os
+import re
 import sys
 
 import numpy as np
@@ -21,7 +29,12 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import svg_content  # noqa: E402
 
 FONT, WEIGHT = "Century Gothic", "bold"
-MIN_FEATURE, SAFE, CUBE_MM, RES = 0.55, 1.0, 12.5, 0.015
+MIN_FEATURE, SAFE, RES = 0.55, 1.0, 0.015
+# the cube needs WIDTH, so it goes on the facet with the biggest inscribed
+# circle -- which is not the widest strip: these are slanted, and facet 2 is
+# 15.1 mm wide but tapers to an 8.2 mm circle, against 11.2 mm on facet 1.
+CUBE_FACET, WORD_FACET, WORD = 1, 2, "CDP"
+MIN_WALL_SLS = 0.8        # the rule the part is actually made to
 NS = "{http://www.w3.org/2000/svg}"
 
 meta = {e["facet"]: e for e in json.load(open(os.path.join(TPL, "templates.json")))}
@@ -101,7 +114,12 @@ def fit_text(txt, fid, band):
 
 # ---------------------------------------------------------------- the logo
 backup = os.path.join(ROOT, "build", "artwork_backup")
-src = sorted(f for f in os.listdir(backup) if f.endswith(".svg"))[-1]
+# the hand-drawn original, not one of the regenerated snapshots beside it
+cands = sorted(f for f in os.listdir(backup)
+               if re.match(r"canvas_combined\.\d{8}-\d{6}\.svg$", f))
+if not cands:
+    raise SystemExit(f"no hand-drawn logo backup in {backup}")
+src = cands[-1]
 svg = SVG.parse(svg_content._without_template(os.path.join(backup, src)),
                 reify=True, ppi=25.4)
 parts = []
@@ -143,6 +161,20 @@ verts = hex_vertices(sil)
 print(f"silhouette corners found: {len(verts)} at "
       f"{[round(np.degrees(a)) for a, _ in verts]} degrees")
 
+# Size the cube to the facet's INSCRIBED circle, not its bounding box: these
+# strips are slanted, so the box badly overstates how much room is really there
+# (12.5 mm "fits" a 15.1 mm-wide facet by bbox, and does not fit it at all).
+_fc = usable(CUBE_FACET)
+_lo, _hi = 0.0, 0.5 * max(_fc.bounds[2] - _fc.bounds[0],
+                          _fc.bounds[3] - _fc.bounds[1])
+for _ in range(40):
+    _mid = (_lo + _hi) / 2
+    if _fc.buffer(-_mid).is_empty:
+        _hi = _mid
+    else:
+        _lo = _mid
+_centre = _fc.buffer(-_lo * 0.98).representative_point()
+CUBE_MM = round(2 * _lo * 0.96, 1)          # silhouette circumradius <= inradius
 scale = CUBE_MM / max(sil.bounds[2] - sil.bounds[0], sil.bounds[3] - sil.bounds[1])
 sil_s = sc(sil, xfact=scale, yfact=scale, origin="centroid")
 # the three structural edges of the cube: centre to alternating corners. Pick
@@ -163,27 +195,30 @@ for off in (0, 1):
         best = (score, cand)
 edges = best[1]
 edg_s = sc(edges, xfact=scale, yfact=scale, origin=sil.centroid)
-f3 = usable(3)
-cx, cy = f3.centroid.x, f3.centroid.y
+f3 = _fc
+cx, cy = _centre.x, _centre.y
 sil_s = tr(sil_s, cx - sil_s.centroid.x, cy - sil_s.centroid.y)
 edg_s = tr(edg_s, cx - edg_s.centroid.x, cy - edg_s.centroid.y)
 groove = edg_s.buffer(MIN_FEATURE / 2, cap_style=2, join_style=2)
 cube = sil_s.difference(groove)
 
-print(f"logo {CUBE_MM} mm (scaled {scale:.3f}x), centred on facet 3")
+print(f"logo {CUBE_MM} mm (scaled {scale:.3f}x), centred on facet {CUBE_FACET}")
 print(f"  raised area {cube.area:.1f} mm2 in "
       f"{len(list(getattr(cube, 'geoms', [cube])))} islands, "
       f"grooves {groove.intersection(sil_s).area:.1f} mm2")
 print(f"  inside the facet: {'yes' if f3.contains(sil_s) else 'NO'}")
-print(f"  thinnest raised feature {narrowest(cube):.2f} mm")
+_thin = narrowest(sil_s)
+print(f"  thinnest raised feature {_thin:.2f} mm  "
+      f"{'OK' if _thin >= MIN_WALL_SLS else 'THIN for SLS'}")
 
 # ---------------------------------------------------------------- the text
-top, cap1, bw1, st1 = fit_text("Terrier CDP", 4, 8.0)
-bot, cap2, bw2, st2 = fit_text("Titan Technologies", 2, 6.0)
-for label, fid, cap, bw, st in (("Terrier CDP", 4, cap1, bw1, st1),
-                                ("Titan Technologies", 2, cap2, bw2, st2)):
-    print(f"  {label:20s} facet {fid}  box {bw:5.1f}  cap {cap:4.2f} mm  "
-          f"thinnest {st:4.2f} mm  {'OK' if st >= MIN_FEATURE else 'THIN'}")
+_fw = usable(WORD_FACET)
+_band = round(min(_fw.bounds[3] - _fw.bounds[1],
+                  _fw.bounds[2] - _fw.bounds[0]) - 0.6, 1)
+word, cap1, bw1, st1 = fit_text(WORD, WORD_FACET, _band)
+print(f"  {WORD:20s} facet {WORD_FACET}  box {bw1:5.1f}  cap {cap1:4.2f} mm  "
+      f"thinnest {st1:4.2f} mm  "
+      f"{'OK' if st1 >= MIN_WALL_SLS else 'THIN for SLS'}")
 
 
 # ---------------------------------------------------------------- write SVGs
@@ -218,28 +253,33 @@ def inject(fid, geom, name):
     print(f"  wrote {name} -> facet_{fid}.svg")
 
 
-inject(4, top, "Terrier CDP")
 # The three edges are RIDGES on a cube, not valleys: the pyramid raises them by
 # itself where its faces meet. Engraving them as grooves would cut away exactly
 # the feature the relief creates, so the artwork is the plain silhouette and the
 # grooves survive only as the way the three edge directions were found.
-inject(3, sil_s, "the cube silhouette")
-inject(2, bot, "Titan Technologies")
+inject(CUBE_FACET, sil_s, "the cube silhouette")
+inject(WORD_FACET, word, WORD)
+for _f in (3,):
+    if _f not in (CUBE_FACET, WORD_FACET):
+        inject(_f, shapely.geometry.GeometryCollection(), "nothing")
 
 # ---------------------------------------------------------- the relief spec
 # The cube is not flat: its three faces are the near half of a real cube, cut
 # perpendicular to the view direction and squashed. Each face is the plane
 # through the apex and two alternating corners of the hexagon, and the surface
 # is the lower envelope of the three -- which is exactly what the drawing draws.
-RELIEF_TEXT, RELIEF_CUBE = 0.8, 1.1
+# Heights are NOMINAL: each half takes CLR off, so a relief asked for at h stands
+# h - 0.15 on the built part. The cube is a third of a true cube of its silhouette,
+# which is what makes it read as a solid rather than a hexagon.
+RELIEF_TEXT, RELIEF_CUBE = 0.95, 3.15
 chosen = [a for k, (a, _) in enumerate(verts) if k % 2 == 0]
 corners = [[cx + scale * r * np.cos(a), cy + scale * r * np.sin(a)]
            for a, (_, r) in zip(chosen, [verts[k] for k in range(0, len(verts), 2)])]
 spec = [
-    dict(facet=4, file="facet_4.svg", kind="flat", height=RELIEF_TEXT),
-    dict(facet=3, file="facet_3.svg", kind="pyramid", height=RELIEF_CUBE,
-         apex=[cx, cy], corners=corners),
-    dict(facet=2, file="facet_2.svg", kind="flat", height=RELIEF_TEXT),
+    dict(facet=WORD_FACET, file=f"facet_{WORD_FACET}.svg", kind="flat",
+         height=RELIEF_TEXT),
+    dict(facet=CUBE_FACET, file=f"facet_{CUBE_FACET}.svg", kind="pyramid",
+         height=RELIEF_CUBE, apex=[cx, cy], corners=corners),
 ]
 with open(os.path.join(TPL, "relief.json"), "w") as fh:
     json.dump(spec, fh, indent=1)

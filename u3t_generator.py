@@ -420,16 +420,27 @@ def export_welded(mesh, path, nudge=1e-4, tries=12):
     of a millimetre and try again. It converges in one or two steps, and a sub-micron
     shift of a part that sits on the bed anyway has no dimensional meaning.
     """
+    def sound(m):
+        return m.is_watertight and len(m.split(only_watertight=True)) == 1
+
+    # weld is a REPAIR. Snapping to the grid can fuse two vertices that belong to
+    # different sheets of the surface and pinch a mesh that was already sound --
+    # which is exactly what it did to the fan once its facets came close to
+    # tangent. So write the mesh as it stands, re-read it, and only reach for the
+    # repair if the FILE is the thing that is broken.
+    mesh.export(path)
+    back = trimesh.load(path)
+    if sound(back):
+        return back
     for k in range(tries):
         m = mesh.copy()
         if k:
             m.apply_translation([0.0, 0.0, k * nudge])
         m = weld(m)
-        if m.is_watertight and len(m.split(only_watertight=True)) == 1:
+        if sound(m):
             m.export(path)
-            if k:
-                print(f"  {os.path.basename(path)}: grid phase nudged "
-                      f"{k * nudge * 1000:.1f} um to clear a pinch")
+            print(f"  {os.path.basename(path)}: welded"
+                  + (f", grid phase nudged {k * nudge * 1000:.1f} um" if k else ""))
             return m
     raise RuntimeError(f"{path}: could not write a watertight file in {tries} tries")
 

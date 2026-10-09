@@ -203,7 +203,7 @@ bottom solid  =  ⋃ₖ [ cylinder(ρ ≤ ρₖ₊₁) ∩ half-space(φ ≤ φ�
 |---|---|---|---|---|---|
 | 1 | 62.0° | 8.5 mm | 41.3 mm | 182 mm² | — |
 | 2 | 53.5° | 13.1 mm | 88.6 mm | 876 mm² | the word `CDP`, 10.5 mm cap |
-| 3 | 47.0° | 14.4 mm | 88.0 mm | 964 mm² | — |
+| 3 | 47.0° | 14.4 mm | 88.0 mm | 964 mm² | `2019-2026`, 6.4 mm cap |
 | 4 | 41.8° | 15.8 mm | 47.9 mm | 422 mm² | the cube, 13.2 mm |
 | 5 | 37.3° | 2.8 mm | 7.0 mm | 10 mm² | — |
 | | | | | **2455 mm²** | |
@@ -388,8 +388,8 @@ generator attacks its own output before it exits, and writes the results to `ver
 | **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 263.4 / 661.2 mm³ |
 | **control** — the *other* edition's move | — | collides: 315.2 mm³ (straight slide, 2 mm) |
 | **control** — reverse rotation, 1° | — | collides: 12 696 mm³ |
-| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 32 and 35 patches, 8.3 / 5.4 mm² |
-| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 163 and 137 patches, 42.3 / 123.6 mm² |
+| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 38 and 44 patches, 10.0 / 8.3 mm² |
+| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 202 and 194 patches, 52.5 / 141.0 mm² |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -595,14 +595,14 @@ What it bought, measured against the pair that came back from SLS:
 |---|---|---|
 | key profile | dovetail 11.7 → 19.1 mm, over 65 % of the height | dovetail 11.7 → 16.7 mm, over 67 % |
 | widening, as a share of the key's height | 65 % | **67 %** |
-| thin-feature scan, SLS rule, bottom | 87.5 mm² | **42.3 mm²** |
-| thin-feature scan, SLS rule, top | 180.6 mm² | **123.6 mm²** |
+| thin-feature scan, SLS rule, bottom | 87.5 mm² | **52.5 mm²** |
+| thin-feature scan, SLS rule, top | 180.6 mm² | **141.0 mm²** |
 | lock against a straight 1 mm lift | 68.7 mm³ | **277.5 mm³** |
 | canvas | 3553 mm² in five facets | 2455 mm² in five |
 
 And what it cost, stated plainly: **the canvas halved**, which is the conservation
 law being paid rather than a mistake, and the content came down with it — from a
-three-part lockup to a cube on one facet and `CDP` on another.
+three-part lockup to a cube, the dates `2019-2026` and `CDP`, one to a facet.
 
 Measured face-on with rays rather than by slicing, every key improves:
 

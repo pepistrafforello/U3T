@@ -30,7 +30,7 @@ import svg_content  # noqa: E402
 
 FONT, WEIGHT = "Century Gothic", "bold"
 MIN_FEATURE, SAFE, RES = 0.55, 1.0, 0.015
-WORD = "CDP"
+TEXTS = ["CDP", "2019-2026"]     # in order; each gets the longest facet left
 MIN_WALL_SLS = 0.8        # the rule the part is actually made to
 NS = "{http://www.w3.org/2000/svg}"
 
@@ -59,13 +59,19 @@ def inradius(fid):
     return lo
 
 
-def pick_facets():
-    """Cube on the roundest facet; the word on the longest one left that can hold it."""
+def pick_facets(n_texts):
+    """Cube on the roundest facet; each text on the longest facet still free.
+
+    Picked by measurement every run, because the fan reshapes whenever the axis or
+    the trim angle moves and a hard-coded facet number goes quietly stale.
+    """
     ids = sorted(k for k in meta if k != "combined")
     cube = max(ids, key=inradius)
-    rest = [k for k in ids if k != cube]
-    word = max(rest, key=lambda k: meta[k]["length_mm"])
-    return cube, word
+    rest = sorted((k for k in ids if k != cube),
+                  key=lambda k: meta[k]["length_mm"], reverse=True)
+    if len(rest) < n_texts:
+        raise SystemExit(f"only {len(rest)} facets free for {n_texts} texts")
+    return cube, rest[:n_texts]
 
 
 def widest(poly, h, step=0.2):
@@ -135,10 +141,10 @@ def fit_text(txt, fid, band):
     return g, lo, bw, narrowest(g)
 
 
-CUBE_FACET, WORD_FACET = pick_facets()
+CUBE_FACET, TEXT_FACETS = pick_facets(len(TEXTS))
 print(f"facets: cube on {CUBE_FACET} (inscribed circle "
-      f"{2 * inradius(CUBE_FACET):.1f} mm), {WORD} on {WORD_FACET} "
-      f"({meta[WORD_FACET]['length_mm']:.0f} mm long)")
+      f"{2 * inradius(CUBE_FACET):.1f} mm)"
+      + "".join(f", {t} on {f}" for t, f in zip(TEXTS, TEXT_FACETS)))
 
 # ---------------------------------------------------------------- the logo
 backup = os.path.join(ROOT, "build", "artwork_backup")
@@ -240,13 +246,19 @@ print(f"  thinnest raised feature {_thin:.2f} mm  "
       f"{'OK' if _thin >= MIN_WALL_SLS else 'THIN for SLS'}")
 
 # ---------------------------------------------------------------- the text
-_fw = usable(WORD_FACET)
-_band = round(min(_fw.bounds[3] - _fw.bounds[1],
-                  _fw.bounds[2] - _fw.bounds[0]) - 0.6, 1)
-word, cap1, bw1, st1 = fit_text(WORD, WORD_FACET, _band)
-print(f"  {WORD:20s} facet {WORD_FACET}  box {bw1:5.1f}  cap {cap1:4.2f} mm  "
-      f"thinnest {st1:4.2f} mm  "
-      f"{'OK' if st1 >= MIN_WALL_SLS else 'THIN for SLS'}")
+laid = []
+for _txt, _fid in zip(TEXTS, TEXT_FACETS):
+    _fw = usable(_fid)
+    _band = round(min(_fw.bounds[3] - _fw.bounds[1],
+                      _fw.bounds[2] - _fw.bounds[0]) - 0.6, 1)
+    _g, _cap, _bw, _st = fit_text(_txt, _fid, _band)
+    laid.append((_fid, _txt, _g))
+    print(f"  {_txt:20s} facet {_fid}  box {_bw:5.1f}  cap {_cap:4.2f} mm  "
+          f"thinnest {_st:4.2f} mm  "
+          f"{'OK' if _st >= MIN_WALL_SLS else 'THIN for SLS'}")
+    if _st < MIN_WALL_SLS:
+        raise SystemExit(f"{_txt} on facet {_fid} would print at {_st:.2f} mm, "
+                         f"under the {MIN_WALL_SLS} mm minimum")
 
 
 # ---------------------------------------------------------------- write SVGs
@@ -286,9 +298,11 @@ def inject(fid, geom, name):
 # the feature the relief creates, so the artwork is the plain silhouette and the
 # grooves survive only as the way the three edge directions were found.
 inject(CUBE_FACET, sil_s, "the cube silhouette")
-inject(WORD_FACET, word, WORD)
+for _fid, _txt, _g in laid:
+    inject(_fid, _g, _txt)
+_used = {CUBE_FACET} | {f for f, _, _ in laid}
 for _f in sorted(k for k in meta if k != "combined"):
-    if _f not in (CUBE_FACET, WORD_FACET):
+    if _f not in _used:
         inject(_f, shapely.geometry.GeometryCollection(), "nothing")
 
 # ---------------------------------------------------------- the relief spec
@@ -303,12 +317,10 @@ RELIEF_TEXT, RELIEF_CUBE = 0.95, 3.15
 chosen = [a for k, (a, _) in enumerate(verts) if k % 2 == 0]
 corners = [[cx + scale * r * np.cos(a), cy + scale * r * np.sin(a)]
            for a, (_, r) in zip(chosen, [verts[k] for k in range(0, len(verts), 2)])]
-spec = [
-    dict(facet=WORD_FACET, file=f"facet_{WORD_FACET}.svg", kind="flat",
-         height=RELIEF_TEXT),
-    dict(facet=CUBE_FACET, file=f"facet_{CUBE_FACET}.svg", kind="pyramid",
-         height=RELIEF_CUBE, apex=[cx, cy], corners=corners),
-]
+spec = [dict(facet=f, file=f"facet_{f}.svg", kind="flat", height=RELIEF_TEXT)
+        for f, _, _ in laid]
+spec.append(dict(facet=CUBE_FACET, file=f"facet_{CUBE_FACET}.svg", kind="pyramid",
+                 height=RELIEF_CUBE, apex=[cx, cy], corners=corners))
 with open(os.path.join(TPL, "relief.json"), "w") as fh:
     json.dump(spec, fh, indent=1)
 print(f"  relief spec: text {RELIEF_TEXT} mm, cube apex {RELIEF_CUBE} mm, "

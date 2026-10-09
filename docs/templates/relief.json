@@ -6,6 +6,12 @@
   "height": 0.95
  },
  {
+  "facet": 3,
+  "file": "facet_3.svg",
+  "kind": "flat",
+  "height": 0.95
+ },
+ {
   "facet": 4,
   "file": "facet_4.svg",
   "kind": "pyramid",

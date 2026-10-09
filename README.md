@@ -310,7 +310,7 @@ The rotation edition inherits every one of those and adds its own, at the top of
 | parameter | shipped | meaning |
 |---|---|---|
 | `E`, `C` | (1, 1, 0)/√2 through (65, −65, −103.5) | the rotation axis; apex plane x − y = 130 |
-| `KEY_Z0R`, `KEY_Z1R` | 7.5, 13.0 | the key is 5.5 mm tall here rather than 4.0 |
+| `KEY_Z0R`, `KEY_Z1R` | 7.0, 13.0 | the key starts *below* the band — see the note on the foot groove |
 | `KEY_HW0R`, `KEY_HW1R` | 6.0, 8.5 | waist and flare: 2.5 mm of dovetail wing a side |
 | `KEY_NECK_ZR`, `KEY_FLARE_RUN` | 7.7, 4.0 | the flare opens just above the band, over 4 of the key’s 5.5 mm |
 | `KEY_RAIL_R` | 8.0 | interior anchor rail behind each key |
@@ -379,7 +379,7 @@ generator attacks its own output before it exits, and writes the results to `ver
 | **control** — the *other* edition's move | — | collides: 315.2 mm³ (straight slide, 2 mm) |
 | **control** — reverse rotation, 1° | — | collides: 12 696 mm³ |
 | thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 30 and 25 patches, 7.4 / 43.7 mm² |
-| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 135 and 108 patches, 35.3 / 101.0 mm² |
+| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 137 and 110 patches, 35.8 / 101.3 mm² |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -514,6 +514,33 @@ material behind it grows immediately, and SLS renders it as a slightly rounded
 edge. It is the same class of feature that printed correctly on all four FDM parts
 and on two of the four SLS keys.
 
+### A groove at the foot of two keys
+
+pepi spotted a thin horizontal line along the foot of two of the four keys, on the
+open part, and it had been there from the beginning. It is a real notch, 0.45 mm
+deep and 0.3 mm tall, and it comes from the clearance being taken in two places
+that disagree at the seam:
+
+```
+the band slab's top drops to   BAND_Z - CLR = 7.35
+the key's trapezoid foot lifts to KEY_Z0R + CLR = 7.65
+```
+
+Between those two heights the face belongs to neither, and on the two faces whose
+orbits leave through them the prism behind it sits inboard — so the face is cut
+back. The other two are flush, which is why it showed on exactly two keys.
+
+The fix is to start the key below the band (`KEY_Z0R` 7.5 → 7.0) so the offset
+cannot open the strip; the extra trapezoid is simply absorbed into the slab, which
+is the same material. The notch measures 0.000 mm on all four faces afterwards and
+nothing else moves: overlap still 0.000000 mm³, face fidelity 0.005 mm, the lock
+within 0.2 mm³ of where it was.
+
+It is worth noting what did *not* catch this. Every check in the suite is about
+the mesh being valid, the halves separating, the faces agreeing with each other,
+or features being thick enough. A 0.45 mm notch present identically on two faces
+passes all of them. It took someone looking at the thing.
+
 ### Getting the dovetail back: move the axis, not the key
 
 Removing the flare made the part buildable and cost the object its premise. A
@@ -558,9 +585,9 @@ What it bought, measured against the pair that came back from SLS:
 |---|---|---|
 | key profile | dovetail 11.7 → 19.1 mm, over 65 % of the height | dovetail 11.7 → 16.7 mm, over 67 % |
 | widening, as a share of the key's height | 65 % | **67 %** |
-| thin-feature scan, SLS rule, bottom | 87.5 mm² | **35.3 mm²** |
-| thin-feature scan, SLS rule, top | 180.6 mm² | **101.0 mm²** |
-| lock against a straight 1 mm lift | 68.7 mm³ | **160.3 mm³** |
+| thin-feature scan, SLS rule, bottom | 87.5 mm² | **35.8 mm²** |
+| thin-feature scan, SLS rule, top | 180.6 mm² | **101.3 mm²** |
+| lock against a straight 1 mm lift | 68.7 mm³ | **160.1 mm³** |
 | canvas | 3553 mm² in five facets | 1912 mm² in three |
 
 And what it cost, stated plainly: **the canvas halved**, which is the conservation

@@ -66,7 +66,15 @@ G = np.array([1.0, -1.0, 0.0]) / SQ2     # horizontal, perpendicular to axis
 ZAX = np.array([0.0, 0.0, 1.0])
 C = np.array([65.0, -65.0, -103.5])      # axis point: apex plan line x - y = 130
 
-KEY_Z0R, KEY_Z1R = 7.5, 13.0             # key: band -> top (5.5 mm tall)
+KEY_Z0R, KEY_Z1R = 7.0, 13.0             # key: starts BELOW the band, runs to the top
+# Why the key starts at 7.0 and not at the band itself. The clearance is taken on
+# the face, so the bottom half's trapezoid lifts its foot to KEY_Z0R + CLR while
+# its band slab drops its top to BAND_Z - CLR. With both at 7.5 that leaves a
+# 0.3 mm strip of face, from 7.35 to 7.65, that the trapezoid does not reach, and
+# on two of the four keys the prism behind it sits inboard: a 0.45 mm deep groove
+# running along the foot of the key, visible on the open part and on no drawing.
+# Starting the trapezoid below the band closes it -- the extra is simply absorbed
+# into the slab, which is the same material -- and costs nothing anywhere else.
 KEY_NECK_ZR = 7.7                        # the flare starts just above the band and
 KEY_FLARE_RUN = 4.0                      # opens over 4 of the key's 5.5 mm, so the
                                          # dovetail is a dovetail to look at: the

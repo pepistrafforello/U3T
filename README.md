@@ -152,7 +152,7 @@ carries a single tilted band, blank for the moment, while its content is redesig
 | axis / direction | 44.7° off vertical, diagonal in plan | direction (1, 1, 0)/√2 through (65, −65, −103.5) mm |
 | walls | planar, parallel to **d** | patches of cylinders coaxial with the axis |
 | key | flared dovetail, 6 → 10 mm half-width | flared dovetail, 6 → 8.5 mm half-width |
-| hidden interface | one tilted band, 30°, blank | a three-facet fan, 1912 mm², carrying relief |
+| hidden interface | one tilted band, 30°, blank | a five-facet fan, 2455 mm², carrying relief |
 | process it is built for | FDM, 0.5 mm minimum wall | SLS, 0.8 mm minimum wall |
 | generator | `u3t_generator.py` | `u3t_rot_generator.py` |
 | print files | `stl/U3T_bottom.stl`, `stl/U3T_top_print.stl` | `stl/U3T_rot_bottom.stl`, `stl/U3T_rot_top_print.stl` |
@@ -201,16 +201,26 @@ bottom solid  =  ⋃ₖ [ cylinder(ρ ≤ ρₖ₊₁) ∩ half-space(φ ≤ φ�
 
 | facet | tilt | strip width | length | canvas | carries |
 |---|---|---|---|---|---|
-| 1 | 50.0° | 13.7 mm | 89.2 mm | 1068 mm² | the cube, 11.2 mm |
-| 2 | 44.2° | 15.1 mm | 67.6 mm | 702 mm² | the word `CDP`, 8 mm cap |
-| 3 | 39.4° | 10.4 mm | 27.2 mm | 142 mm² | — |
-| | | | | **1912 mm²** | |
+| 1 | 62.0° | 8.5 mm | 41.3 mm | 182 mm² | — |
+| 2 | 53.5° | 13.1 mm | 88.6 mm | 876 mm² | the word `CDP`, 10.5 mm cap |
+| 3 | 47.0° | 14.4 mm | 88.0 mm | 964 mm² | — |
+| 4 | 41.8° | 15.8 mm | 47.9 mm | 422 mm² | the cube, 13.2 mm |
+| 5 | 37.3° | 2.8 mm | 7.0 mm | 10 mm² | — |
+| | | | | **2455 mm²** | |
 
-The cube sits on facet 1 rather than the wider facet 2, which looks wrong until
-you measure it: these strips are slanted, so a bounding box badly overstates the
-room. Facet 2 is 15.1 mm wide and holds an 8.2 mm circle; facet 1 is 13.7 mm wide
-and holds 11.2 mm. The layout tool sizes the cube to the inscribed circle for
-exactly this reason.
+`CANVAS_MAX_LEAN` decides how much of this there is. It trims the footprint at the
+radius where a facet would lean past it, and at 50° that left 2614 mm² with a large
+flat triangle beside the strips — visible on the open part and easy to mistake for
+a mistake. At 62° the fan reaches the whole inset region, 3491 mm² of footprint and
+2455 mm² of canvas in five strips. Past about 68° the innermost facets go
+near-vertical and the booleans start shedding slivers.
+
+The cube does not go on the widest strip, which looks wrong until you measure it:
+these facets are slanted, so a bounding box flatters them badly — one of them is
+15.1 mm wide and holds an 8.2 mm circle. `lockup_layout.py` therefore picks the
+facet with the largest **inscribed circle** for the cube and the longest remaining
+one for the word, and sizes the cube to that circle. It re-picks every run, because
+the fan changes shape whenever the axis or the trim angle does.
 
 The radii step by a constant ratio K = (z_hi − z_axis) / (z_lo − z_axis) = 1.0833, which is why the
 strips widen across the fan; it is trimmed where a riser would overhang more than
@@ -316,7 +326,7 @@ The rotation edition inherits every one of those and adds its own, at the top of
 | `KEY_RAIL_R` | 8.0 | interior anchor rail behind each key |
 | `CANVAS_Z_LO`, `CANVAS_Z_HI` | 3.0, 13.5 | the slice of the slab the fan may use |
 | `CANVAS_INSET` | 14.0 | keep the canvas this far from the side faces |
-| `CANVAS_MAX_LEAN` | 50.0 | cap the phase; SLS holds any overhang, but a near-vertical facet gives a strip near zero |
+| `CANVAS_MAX_LEAN` | 62.0 | how far inward the fan reaches; it trims the footprint, so it sets how much canvas there is at all |
 | `CONTENT_R` | `True` | build the relief from `docs/templates/*.svg` |
 
 Three rules constrain the numbers, and all three were learned the hard way:
@@ -374,12 +384,12 @@ generator attacks its own output before it exits, and writes the results to `ver
 | assembly envelope | exactly 100 × 100 × 15 | exactly 100 × 100 × 15 |
 | assembled overlap | 0.000000 mm³ | 0.000000 mm³ |
 | overlap through the full opening motion | 0.000000 mm³ at 14 stations, t = 0.05 … 40 mm | 0.000000 mm³ at 12 stations, θ = 0.05° … 25° |
-| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 160.3 / 283.0 mm³ |
+| **control** — pull straight up, 1 / 2 mm | collides: 63.0 / 108.5 mm³ | collides: 277.5 / 469.0 mm³ |
 | **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 263.4 / 661.2 mm³ |
 | **control** — the *other* edition's move | — | collides: 315.2 mm³ (straight slide, 2 mm) |
 | **control** — reverse rotation, 1° | — | collides: 12 696 mm³ |
-| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 30 and 25 patches, 7.4 / 43.7 mm² |
-| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 137 and 110 patches, 35.8 / 101.3 mm² |
+| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 32 and 35 patches, 8.3 / 5.4 mm² |
+| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 163 and 137 patches, 42.3 / 123.6 mm² |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -585,10 +595,10 @@ What it bought, measured against the pair that came back from SLS:
 |---|---|---|
 | key profile | dovetail 11.7 → 19.1 mm, over 65 % of the height | dovetail 11.7 → 16.7 mm, over 67 % |
 | widening, as a share of the key's height | 65 % | **67 %** |
-| thin-feature scan, SLS rule, bottom | 87.5 mm² | **35.8 mm²** |
-| thin-feature scan, SLS rule, top | 180.6 mm² | **101.3 mm²** |
-| lock against a straight 1 mm lift | 68.7 mm³ | **160.1 mm³** |
-| canvas | 3553 mm² in five facets | 1912 mm² in three |
+| thin-feature scan, SLS rule, bottom | 87.5 mm² | **42.3 mm²** |
+| thin-feature scan, SLS rule, top | 180.6 mm² | **123.6 mm²** |
+| lock against a straight 1 mm lift | 68.7 mm³ | **277.5 mm³** |
+| canvas | 3553 mm² in five facets | 2455 mm² in five |
 
 And what it cost, stated plainly: **the canvas halved**, which is the conservation
 law being paid rather than a mistake, and the content came down with it — from a

@@ -30,10 +30,7 @@ import svg_content  # noqa: E402
 
 FONT, WEIGHT = "Century Gothic", "bold"
 MIN_FEATURE, SAFE, RES = 0.55, 1.0, 0.015
-# the cube needs WIDTH, so it goes on the facet with the biggest inscribed
-# circle -- which is not the widest strip: these are slanted, and facet 2 is
-# 15.1 mm wide but tapers to an 8.2 mm circle, against 11.2 mm on facet 1.
-CUBE_FACET, WORD_FACET, WORD = 1, 2, "CDP"
+WORD = "CDP"
 MIN_WALL_SLS = 0.8        # the rule the part is actually made to
 NS = "{http://www.w3.org/2000/svg}"
 
@@ -43,6 +40,32 @@ meta = {e["facet"]: e for e in json.load(open(os.path.join(TPL, "templates.json"
 def usable(fid):
     p = Polygon(meta[fid]["page_outlines"][0]).buffer(-SAFE)
     return p if p.geom_type == "Polygon" else max(p.geoms, key=lambda q: q.area)
+
+
+def inradius(fid):
+    """Radius of the largest circle that fits the facet, which is what the cube needs.
+
+    Not the strip width: these facets are slanted, so a bounding box flatters them
+    badly -- one of them measured 15.1 mm wide and held an 8.2 mm circle.
+    """
+    p = usable(fid)
+    lo, hi = 0.0, 0.5 * max(p.bounds[2] - p.bounds[0], p.bounds[3] - p.bounds[1])
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if p.buffer(-mid).is_empty:
+            hi = mid
+        else:
+            lo = mid
+    return lo
+
+
+def pick_facets():
+    """Cube on the roundest facet; the word on the longest one left that can hold it."""
+    ids = sorted(k for k in meta if k != "combined")
+    cube = max(ids, key=inradius)
+    rest = [k for k in ids if k != cube]
+    word = max(rest, key=lambda k: meta[k]["length_mm"])
+    return cube, word
 
 
 def widest(poly, h, step=0.2):
@@ -111,6 +134,11 @@ def fit_text(txt, fid, band):
               (bb[1] + bb[3]) / 2 - (gy0 + gy1) / 2)
     return g, lo, bw, narrowest(g)
 
+
+CUBE_FACET, WORD_FACET = pick_facets()
+print(f"facets: cube on {CUBE_FACET} (inscribed circle "
+      f"{2 * inradius(CUBE_FACET):.1f} mm), {WORD} on {WORD_FACET} "
+      f"({meta[WORD_FACET]['length_mm']:.0f} mm long)")
 
 # ---------------------------------------------------------------- the logo
 backup = os.path.join(ROOT, "build", "artwork_backup")
@@ -259,7 +287,7 @@ def inject(fid, geom, name):
 # grooves survive only as the way the three edge directions were found.
 inject(CUBE_FACET, sil_s, "the cube silhouette")
 inject(WORD_FACET, word, WORD)
-for _f in (3,):
+for _f in sorted(k for k in meta if k != "combined"):
     if _f not in (CUBE_FACET, WORD_FACET):
         inject(_f, shapely.geometry.GeometryCollection(), "nothing")
 

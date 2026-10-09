@@ -125,10 +125,14 @@ KEY_RAIL_R = 8.0
 CANVAS_Z_LO = 3.0        # floor: what the bottom part keeps under the canvas
 CANVAS_Z_HI = 13.5       # ceiling: the top part keeps 15 - this above it
 CANVAS_INSET = 14.0      # keep the canvas this far from the side faces
-CANVAS_MAX_LEAN = 50.0   # cap the phase. SLS holds any overhang, but a facet near
-                         # vertical gives a strip near zero (phi 80 deg -> 1.9 mm)
-                         # and the inner facets go tangent enough to confuse the
-                         # boolean. 50 deg keeps every strip at 8.8 mm or wider.
+CANVAS_MAX_LEAN = 62.0   # how far inward the fan reaches. The footprint is trimmed
+                         # at the radius where a facet would lean past this, so the
+                         # cap decides how much of the central area is canvas at all:
+                         # 50 deg left 2614 mm2 and a large flat triangle beside the
+                         # strips; 62 deg reaches the whole inset region, 3491 mm2,
+                         # which is as much as the 14 mm inset allows. Past about
+                         # 68 deg the innermost facets go near-vertical and the
+                         # booleans start producing slivers (0.05 mm3 of overlap).
 
 CONTENT_R = True                         # relief from docs/templates/*.svg
 QR_TOP_ZR = 12.2

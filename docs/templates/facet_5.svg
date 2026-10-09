@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="19.00mm" height="19.79mm" viewBox="0 0 19.00 19.79">
+  <!-- U3T rotation edition, canvas facet 5. 1 user unit = 1 mm, origin top left. -->
+  <!-- x runs along the rotation axis; y is radial, and the top edge of the shape is the riser. -->
+  <g id="template" fill="none" stroke-width="0.12">
+    <line x1="0.00" y1="0" x2="0.00" y2="19.79" stroke="#ececec"/>
+    <line x1="5.00" y1="0" x2="5.00" y2="19.79" stroke="#ececec"/>
+    <line x1="10.00" y1="0" x2="10.00" y2="19.79" stroke="#ececec"/>
+    <line x1="15.00" y1="0" x2="15.00" y2="19.79" stroke="#ececec"/>
+    <line x1="0" y1="0.00" x2="19.00" y2="0.00" stroke="#ececec"/>
+    <line x1="0" y1="5.00" x2="19.00" y2="5.00" stroke="#ececec"/>
+    <line x1="0" y1="10.00" x2="19.00" y2="10.00" stroke="#ececec"/>
+    <line x1="0" y1="15.00" x2="19.00" y2="15.00" stroke="#ececec"/>
+    <path d="M 6.000,8.794 L 9.501,6.000 L 13.001,8.794 L 6.000,8.794 Z" stroke="#c0392b" stroke-width="0.25"/>
+    <path d="M 8.856,7.794 L 10.145,7.794 L 9.501,7.279 L 8.856,7.794 Z" stroke="#8FB0D8" stroke-width="0.15" stroke-dasharray="1.2,1.2"/>
+    <text x="6.00" y="18.39" font-family="sans-serif" font-size="2.4" fill="#7d8288" stroke="none">facet 5 of 5 · 7.0 × 2.8 mm · tilt 37.3° · grid 5 mm · min feature 0.55 mm · dashed line = 1 mm safe margin</text>
+  </g>
+  <g id="artwork">
+    </g>
+</svg>

@@ -1,8 +1,8 @@
 # Drawing on the U3T canvas
 
 Five templates, one per facet of the rotation edition's sawtooth interface, plus
-one sheet carrying all five. They are **millimetre-true SVG**: one user unit is
-one millimetre, and a millimetre on the page is a millimetre on the printed part.
+one sheet carrying all five. They are **millimeter-true SVG**: one user unit is
+one millimeter, and a millimeter on the page is a millimeter on the printed part.
 
 | file | size | area | tilt |
 |---|---|---|---|
@@ -42,7 +42,7 @@ canvas; the two ends are small triangles.
 
 ## Tool
 
-**Inkscape** (free, SVG-native, millimetres throughout). Affinity Designer or
+**Inkscape** (free, SVG-native, millimeters throughout). Affinity Designer or
 Illustrator work equally well. Avoid anything that thinks in pixels.
 
 Open the template, draw in the `artwork` layer, leave the `template` layer alone —
@@ -62,7 +62,7 @@ The artwork is extruded into relief, so it has to be **area**, not lines:
    strokes. Below that the nozzle cannot make it, and neighbouring shapes fuse.
    At this size that means bold weights and no hairline serifs.
 3. **Stay inside the dashed margin.**
-4. Keep it in millimetres. The template already is; do not rescale it.
+4. Keep it in millimeters. The template already is; do not rescale it.
 
 Nothing needs mirroring: this artwork sits on the bottom part and is read
 face-on when the block is opened.
@@ -80,12 +80,12 @@ text" mistake in one second rather than after a print.
 
 ## How it maps back
 
-`templates.json` records, per template, the offsets that put page millimetres back
+`templates.json` records, per template, the offsets that put page millimeters back
 on the part:
 
     w   = page_x + w0          (distance along the rotation axis)
     rho = r1 - page_y          (distance out from the axis)
 
 Both are true distances on the facet, which is what makes the template
-millimetre-true. You should not need this, but it is there so that nothing about
+millimeter-true. You should not need this, but it is there so that nothing about
 the mapping is hidden.

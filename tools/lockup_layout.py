@@ -19,7 +19,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.textpath import TextPath
 from scipy.ndimage import distance_transform_edt, grey_dilation
 from shapely.affinity import scale as sc, translate as tr
-from shapely.geometry import Polygon, box
+from shapely.geometry import Point, Polygon, box
 from shapely.ops import unary_union
 from svgelements import SVG, Shape
 
@@ -30,7 +30,8 @@ import svg_content  # noqa: E402
 
 FONT, WEIGHT = "Century Gothic", "bold"
 MIN_FEATURE, SAFE, RES = 0.55, 1.0, 0.015
-TEXTS = ["CDP", "2019-2026"]     # in order; each gets the longest facet left
+TEXTS = ["\u201380\u2013", "Louis Andre III"]   # en dash: Century Gothic Bold
+                                 # has no U+2012 figure dash
 MIN_WALL_SLS = 0.8        # the rule the part is actually made to
 NS = "{http://www.w3.org/2000/svg}"
 
@@ -125,16 +126,30 @@ def narrowest(geom, res=RES):
 
 
 def fit_text(txt, fid, band):
-    bw, bb = widest(usable(fid), band)
-    lo, hi = 1.0, band
-    for _ in range(26):
+    """Largest cap height at which `txt` fits inside facet `fid`.
+
+    The band is measured at the height the TEXT actually needs, not at the full
+    width of the facet. Reserving the whole width makes the usable box far too
+    narrow on a tapering strip -- it cost "Louis Andre III" its last 30 % of cap
+    height, and with it the 0.8 mm minimum stroke.
+    """
+    poly = usable(fid)
+    lo, hi, best = 1.0, band, None
+    for _ in range(30):
         mid = (lo + hi) / 2
         g = glyphs(txt, mid)
-        if (g.bounds[2] - g.bounds[0]) <= bw:
-            lo = mid
+        gh = g.bounds[3] - g.bounds[1]
+        if gh > band:
+            hi = mid
+            continue
+        bw, bb = widest(poly, gh)
+        if bb is not None and (g.bounds[2] - g.bounds[0]) <= bw:
+            lo, best = mid, (g, bb, bw)
         else:
             hi = mid
-    g = glyphs(txt, lo)
+    if best is None:
+        raise SystemExit(f"{txt!r} does not fit facet {fid} at any size")
+    g, bb, bw = best
     gx0, gy0, gx1, gy1 = g.bounds
     g = tr(g, (bb[0] + bb[2]) / 2 - (gx0 + gx1) / 2,
               (bb[1] + bb[3]) / 2 - (gy0 + gy1) / 2)
@@ -142,62 +157,41 @@ def fit_text(txt, fid, band):
 
 
 CUBE_FACET, TEXT_FACETS = pick_facets(len(TEXTS))
-print(f"facets: cube on {CUBE_FACET} (inscribed circle "
+print(f"facets: emblem on {CUBE_FACET} (inscribed circle "
       f"{2 * inradius(CUBE_FACET):.1f} mm)"
       + "".join(f", {t} on {f}" for t, f in zip(TEXTS, TEXT_FACETS)))
 
-# ---------------------------------------------------------------- the logo
-backup = os.path.join(ROOT, "build", "artwork_backup")
-# the hand-drawn original, not one of the regenerated snapshots beside it
-cands = sorted(f for f in os.listdir(backup)
-               if re.match(r"canvas_combined\.\d{8}-\d{6}\.svg$", f))
-if not cands:
-    raise SystemExit(f"no hand-drawn logo backup in {backup}")
-src = cands[-1]
-svg = SVG.parse(svg_content._without_template(os.path.join(backup, src)),
-                reify=True, ppi=25.4)
-parts = []
-for el in svg.elements():
-    if not isinstance(el, Shape):
-        continue
-    rings = [Polygon(r).buffer(0) for r in svg_content._rings(el) if len(r) >= 3]
-    rings = [r for r in rings if r.area > 1e-9]
-    if rings:
-        parts.append(unary_union(rings))
-sil = unary_union(parts)
-sil = Polygon(max(getattr(sil, "geoms", [sil]), key=lambda p: p.area).exterior)
-edges = unary_union([p.exterior for p in parts]).intersection(sil.buffer(-0.01))
+# --------------------------------------------------------------- the emblem
+def beret_silhouette(size_mm):
+    """A stylized military beret, one closed outline, `size_mm` at its widest.
+
+    Drawn rather than built from primitives, because unioning ellipses kept
+    producing a loaf: the cue that says beret is the crown OVERHANGING a narrower
+    headband, and that step has to be placed, not hoped for. The outline is a unit
+    frame with the band's underside on y = 0 -- band, flared crown, stalk -- then
+    scaled so the widest dimension matches what the cube emblem used, and centered
+    on its own centroid.
+
+    Returns the outline and the crown's center, which is where the dome rides.
+    """
+    pts = [(0.66, 0.00), (-0.76, 0.00), (-0.80, 0.22), (-1.02, 0.30),
+           (-1.10, 0.46), (-1.02, 0.62), (-0.86, 0.76), (-0.56, 0.86),
+           (-0.18, 0.92), (0.20, 0.90), (0.54, 0.84), (0.80, 0.72),
+           (0.96, 0.56), (1.02, 0.40), (0.94, 0.28), (0.76, 0.22), (0.70, 0.08)]
+    sil = Polygon(pts)
+    sil = unary_union([sil, Point(0.32, 0.98).buffer(0.11, quad_segs=48)])
+    sil = Polygon(max(getattr(sil, "geoms", [sil]), key=lambda q: q.area).exterior)
+    sil = sil.buffer(0.05, join_style=1).buffer(-0.05, join_style=1)
+    sil = Polygon(max(getattr(sil, "geoms", [sil]), key=lambda q: q.area).exterior)
+    k = size_mm / max(sil.bounds[2] - sil.bounds[0], sil.bounds[3] - sil.bounds[1])
+    # the template page runs y DOWNWARDS, so the outline is drawn crown-up and
+    # then flipped, exactly as the glyph outlines are
+    sil = sc(sil, xfact=k, yfact=-k, origin=(0.0, 0.0))
+    crown = Point(-0.05 * k, -0.52 * k)
+    c = sil.centroid
+    return tr(sil, -c.x, -c.y), tr(crown, -c.x, -c.y)
 
 
-def hex_vertices(poly):
-    """The six corner directions of the rounded hexagon, by angular radius."""
-    c = poly.centroid
-    ang = np.linspace(-np.pi, np.pi, 1441)[:-1]
-    rad = []
-    for a in ang:
-        far = shapely.geometry.LineString(
-            [(c.x, c.y), (c.x + 400 * np.cos(a), c.y + 400 * np.sin(a))])
-        it = far.intersection(poly)
-        rad.append(it.length if not it.is_empty else 0.0)
-    rad = np.array(rad)
-    peaks = []
-    for i in range(len(ang)):
-        w = [(i + k) % len(ang) for k in range(-40, 41)]
-        if rad[i] == rad[w].max() and rad[i] > 0:
-            if not peaks or min(abs(ang[i] - ang[j]) for j in peaks) > 0.35:
-                peaks.append(i)
-    peaks.sort(key=lambda i: -rad[i])
-    peaks = sorted(peaks[:6], key=lambda i: ang[i])
-    return [(ang[i], rad[i]) for i in peaks]
-
-
-verts = hex_vertices(sil)
-print(f"silhouette corners found: {len(verts)} at "
-      f"{[round(np.degrees(a)) for a, _ in verts]} degrees")
-
-# Size the cube to the facet's INSCRIBED circle, not its bounding box: these
-# strips are slanted, so the box badly overstates how much room is really there
-# (12.5 mm "fits" a 15.1 mm-wide facet by bbox, and does not fit it at all).
 _fc = usable(CUBE_FACET)
 _lo, _hi = 0.0, 0.5 * max(_fc.bounds[2] - _fc.bounds[0],
                           _fc.bounds[3] - _fc.bounds[1])
@@ -208,42 +202,22 @@ for _ in range(40):
     else:
         _lo = _mid
 _centre = _fc.buffer(-_lo * 0.98).representative_point()
-CUBE_MM = round(2 * _lo * 0.96, 1)          # silhouette circumradius <= inradius
-scale = CUBE_MM / max(sil.bounds[2] - sil.bounds[0], sil.bounds[3] - sil.bounds[1])
-sil_s = sc(sil, xfact=scale, yfact=scale, origin="centroid")
-# the three structural edges of the cube: centre to alternating corners. Pick
-# the triple that matches the drawing's own internal lines.
-best = None
-for off in (0, 1):
-    segs = []
-    for k in range(off, len(verts), 2):
-        a, r = verts[k]
-        segs.append(shapely.geometry.LineString(
-            [(sil.centroid.x, sil.centroid.y),
-             (sil.centroid.x + 0.86 * r * np.cos(a),
-              sil.centroid.y + 0.86 * r * np.sin(a))]))
-    cand = unary_union(segs)
-    score = cand.buffer(1.5).intersection(edges).length
-    print(f"  triple offset {off}: {len(segs)} edges, match {score:.0f} mm")
-    if best is None or score > best[0]:
-        best = (score, cand)
-edges = best[1]
-edg_s = sc(edges, xfact=scale, yfact=scale, origin=sil.centroid)
-f3 = _fc
-cx, cy = _centre.x, _centre.y
-sil_s = tr(sil_s, cx - sil_s.centroid.x, cy - sil_s.centroid.y)
-edg_s = tr(edg_s, cx - edg_s.centroid.x, cy - edg_s.centroid.y)
-groove = edg_s.buffer(MIN_FEATURE / 2, cap_style=2, join_style=2)
-cube = sil_s.difference(groove)
+EMBLEM_MM = round(2 * _lo * 0.96, 1)
 
-print(f"logo {CUBE_MM} mm (scaled {scale:.3f}x), centred on facet {CUBE_FACET}")
-print(f"  raised area {cube.area:.1f} mm2 in "
-      f"{len(list(getattr(cube, 'geoms', [cube])))} islands, "
-      f"grooves {groove.intersection(sil_s).area:.1f} mm2")
-print(f"  inside the facet: {'yes' if f3.contains(sil_s) else 'NO'}")
+sil_s, _crown = beret_silhouette(EMBLEM_MM)
+cx, cy = _centre.x, _centre.y
+sil_s = tr(sil_s, cx, cy)
+DOME_CX, DOME_CY = _crown.x + cx, _crown.y + cy
+_P = np.asarray(sil_s.exterior.coords)
+DOME_R = float(np.max(np.hypot(_P[:, 0] - DOME_CX, _P[:, 1] - DOME_CY)))
+
+print(f"beret {EMBLEM_MM} mm across, centered on facet {CUBE_FACET}")
+print(f"  raised area {sil_s.area:.1f} mm2, dome radius {DOME_R:.2f} mm")
+print(f"  inside the facet: {'yes' if _fc.contains(sil_s) else 'NO'}")
 _thin = narrowest(sil_s)
 print(f"  thinnest raised feature {_thin:.2f} mm  "
       f"{'OK' if _thin >= MIN_WALL_SLS else 'THIN for SLS'}")
+
 
 # ---------------------------------------------------------------- the text
 laid = []
@@ -297,7 +271,7 @@ def inject(fid, geom, name):
 # itself where its faces meet. Engraving them as grooves would cut away exactly
 # the feature the relief creates, so the artwork is the plain silhouette and the
 # grooves survive only as the way the three edge directions were found.
-inject(CUBE_FACET, sil_s, "the cube silhouette")
+inject(CUBE_FACET, sil_s, "the beret")
 for _fid, _txt, _g in laid:
     inject(_fid, _g, _txt)
 _used = {CUBE_FACET} | {f for f, _, _ in laid}
@@ -313,15 +287,13 @@ for _f in sorted(k for k in meta if k != "combined"):
 # Heights are NOMINAL: each half takes CLR off, so a relief asked for at h stands
 # h - 0.15 on the built part. The cube is a third of a true cube of its silhouette,
 # which is what makes it read as a solid rather than a hexagon.
-RELIEF_TEXT, RELIEF_CUBE = 0.95, 3.15
-chosen = [a for k, (a, _) in enumerate(verts) if k % 2 == 0]
-corners = [[cx + scale * r * np.cos(a), cy + scale * r * np.sin(a)]
-           for a, (_, r) in zip(chosen, [verts[k] for k in range(0, len(verts), 2)])]
+RELIEF_TEXT, RELIEF_EMBLEM, RELIEF_RIM = 0.95, 3.15, 0.95
 spec = [dict(facet=f, file=f"facet_{f}.svg", kind="flat", height=RELIEF_TEXT)
         for f, _, _ in laid]
-spec.append(dict(facet=CUBE_FACET, file=f"facet_{CUBE_FACET}.svg", kind="pyramid",
-                 height=RELIEF_CUBE, apex=[cx, cy], corners=corners))
+spec.append(dict(facet=CUBE_FACET, file=f"facet_{CUBE_FACET}.svg", kind="dome",
+                 height=RELIEF_EMBLEM, rim=RELIEF_RIM,
+                 center=[DOME_CX, DOME_CY], radius=DOME_R))
 with open(os.path.join(TPL, "relief.json"), "w") as fh:
     json.dump(spec, fh, indent=1)
-print(f"  relief spec: text {RELIEF_TEXT} mm, cube apex {RELIEF_CUBE} mm, "
-      f"corners at {[round(np.degrees(a)) for a in chosen]} deg")
+print(f"  relief spec: text {RELIEF_TEXT} mm nominal, dome {RELIEF_EMBLEM} mm "
+      f"at the crown falling to {RELIEF_RIM} mm at the rim")

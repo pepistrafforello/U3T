@@ -189,7 +189,7 @@ lean is shallow, the crop takes the key's entire root with it. Every standard me
 watertightness says nothing about your model being in one piece. Two rules came out of that
 morning:
 
-1. **Depth costs lean.** A key h mm tall can only stick out `lean × h` millimetres from the face.
+1. **Depth costs lean.** A key h mm tall can only stick out `lean × h` millimeters from the face.
    Near-vertical extrusions make wafer keys, no matter how you draw them. This design leans a full
    45° — which is also exactly what an FDM printer will tolerate without supports. That is not a
    coincidence; it's the design sitting on both limits at once.
@@ -200,9 +200,9 @@ morning:
 
 I thought that was the end of the humility. Then the files went to a printing service, and their
 manufacturing review found two things my entire verification suite had happily blessed: walls a
-tenth of a millimetre thick between neighbouring letter cavities — my clearance shaved every
+tenth of a millimeter thick between neighbouring letter cavities — my clearance shaved every
 stroke from both sides, and where two letters nearly touch, the material between their sockets
-all but vanished — and key lips tapering below half a millimetre right where the flare begins.
+all but vanished — and key lips tapering below half a millimeter right where the flare begins.
 Both fixes are in the published files: the artwork now takes its clearance *asymmetrically*, so
 the raised letters keep their full width and the cavity absorbs the whole gap, and every key
 stands on a short straight neck so its lip starts life a comfortable 0.55 mm thick (that's the

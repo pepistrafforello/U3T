@@ -165,7 +165,7 @@ def shots(out=None):
               key=lambda k: abs((meta[k]["rho_in"] + meta[k]["rho_out"]) / 2 - mid_rho))
     phi, radial = r.facet_frame(mid)
     n = r.axis_normal(phi)
-    centre = r.C + (lo_w + hi_w) / 2 * r.E + (lo_r + hi_r) / 2 * radial
+    center = r.C + (lo_w + hi_w) / 2 * r.E + (lo_r + hi_r) / 2 * radial
 
     res, lens = [1600, 1180], 70.0
     need = max((hi_w - lo_w) * 1.12, (hi_r - lo_r) * 1.12 * res[0] / res[1])
@@ -181,7 +181,7 @@ def shots(out=None):
     trimesh.load(os.path.join(ROOT, "stl", "U3T_rot_bottom.stl")).export(stl)
 
     shot = dict(name="lk_wide", stls=[[stl, "tan"]],
-                cam=dict(loc=(centre + n * dist).tolist(), target=centre.tolist(),
+                cam=dict(loc=(center + n * dist).tolist(), target=center.tolist(),
                          type="PERSP", lens=lens),
                 res=res, sun=(-graze).tolist())
     out = out or os.path.join(ROOT, "build", "shots_readme.json")

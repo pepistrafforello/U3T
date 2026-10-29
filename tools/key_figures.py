@@ -4,7 +4,7 @@ The flare's lateral wings are the only material at that width, and on two of the
 four faces nothing backs them but the FACE SHADOW -- the strip of the design plan
 the side face sweeps as z runs over the key. A wing at lateral offset w first
 exists at the height the flare reaches w, and from there its depth grows at the
-lean, about a third of a millimetre per millimetre of height. It therefore needs
+lean, about a third of a millimeter per millimeter of height. It therefore needs
 2.4 mm of key above it to reach the 0.8 mm an SLS machine can build, and the key
 is 5.5 mm tall in total. No flare clears that on those two faces, at any numbers.
 

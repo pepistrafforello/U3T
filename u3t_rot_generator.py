@@ -265,7 +265,14 @@ def relief_solids(delta):
         # the artwork keeps its nominal width; the cavity takes the whole gap
         fp = geom_preimage(content_offset(geom, delta), lift, seg=1.0)
         solid = prism(fp, 1, 28, 14)
-        if item["kind"] == "flat":
+        if item["kind"] == "dome":
+            # a beret, or anything else that wants to be round rather than faceted
+            cw, cr = to_wr(*item["center"])
+            apex = (C + cw * E + cr * radial + n * (item["height"] + delta))
+            drop = item["height"] - item["rim"]
+            ctr, S = dome_centre(apex, n, item["radius"], drop)
+            solid = cap_sphere(solid, ctr, S)
+        elif item["kind"] == "flat":
             base = C + (m["w0"] + 0.0) * E          # any point on the facet plane
             origin = C + n * (float(n @ C) * 0.0)   # plane through C at phase phi
             solid = cap_plane(solid, C + n * (item["height"] + delta), n)
@@ -312,6 +319,32 @@ def canvas_footprint():
     lo = geom_preimage(reg.intersection(keep), lambda x, y: (x, y, CANVAS_Z_LO), seg=2.0)
     hi = geom_preimage(reg, lambda x, y: (x, y, CANVAS_Z_HI), seg=2.0)
     return lo.intersection(hi)
+
+
+def cap_sphere(mesh, center, radius, subdivisions=6):
+    """Intersect a solid with a ball -- the relief equivalent of cap_plane.
+
+    A spherical cap is a height field over its own facet for any radius, exactly
+    as a plane is, so a domed relief needs no more checking than a flat one: the
+    facet is already normal to the motion, so a surface that is single-valued over
+    the facet is single-valued along the orbits too.
+    """
+    ball = trimesh.creation.icosphere(subdivisions=subdivisions, radius=radius)
+    ball.apply_translation(np.asarray(center, dtype=float))
+    return trimesh.boolean.intersection([mesh, ball], engine="manifold")
+
+
+def dome_centre(apex_pt, normal, radius_mm, drop):
+    """Center of the sphere giving `drop` of fall from the apex over `radius_mm`.
+
+    Solving  z(r) = -(S - h) + sqrt(S^2 - r^2)  for z(R) = h - drop gives
+    S = (R^2 + drop^2) / (2 * drop): the sphere that starts at the apex and has
+    come down by `drop` at the rim. Leaving the rim ABOVE the facet rather than
+    running it out to nothing is deliberate -- a dome that feathers to zero is a
+    knife edge all the way round, which is the one thing this part cannot have.
+    """
+    S = (radius_mm ** 2 + drop ** 2) / (2.0 * drop)
+    return np.asarray(apex_pt, dtype=float) - np.asarray(normal, dtype=float) * S, S
 
 
 def cap_plane(mesh, origin, normal):

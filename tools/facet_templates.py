@@ -8,13 +8,13 @@ Each facet is flat, and on it the pair
     w    = distance along the rotation axis
     rho  = distance out from the rotation axis
 
-is orthonormal, so millimetres on the template are millimetres on the part. The
+is orthonormal, so millimeters on the template are millimeters on the part. The
 risers between facets sit at constant rho and therefore occupy *no* width in this
 coordinate: laying the facets side by side in rho gives one continuous sheet,
 which is `canvas_combined.svg`. That is also what a viewer sees looking along the
 motion, the one direction in which the risers are edge-on.
 
-Page coordinates are millimetres with the origin at the top left, and the mapping
+Page coordinates are millimeters with the origin at the top left, and the mapping
 back to the part is recorded in templates.json, so artwork drawn anywhere on the
 page lands where it was drawn:
 
@@ -46,7 +46,7 @@ CAPTION = 5.0      # mm of room under the shape for the caption
 
 
 def facet_polygon(mesh, phi, delta):
-    """The facet's real surface, as a polygon in its own (w, rho) millimetres."""
+    """The facet's real surface, as a polygon in its own (w, rho) millimeters."""
     n = r.axis_normal(phi)
     radial = -np.cos(phi) * r.G + np.sin(phi) * r.ZAX
     target = float(n @ r.C) + delta
@@ -69,7 +69,7 @@ def facet_polygon(mesh, phi, delta):
 
 
 def path_d(ring):
-    """One SVG path. Shapes arrive already in page millimetres, y running down."""
+    """One SVG path. Shapes arrive already in page millimeters, y running down."""
     return ("M " + " L ".join(f"{a:.3f},{b:.3f}" for a, b in np.asarray(ring.coords))
             + " Z")
 
@@ -90,7 +90,7 @@ def has_artwork(path):
 
 
 def write_svg(path, shapes, caption, title, note, force=False):
-    """shapes: polygons in page millimetres, origin already at (PAD, PAD)."""
+    """shapes: polygons in page millimeters, origin already at (PAD, PAD)."""
     if has_artwork(path) and not force:
         print(f"  KEPT {os.path.basename(path)}: it has artwork in it. "
               f"Pass --force to replace it.")

@@ -36,7 +36,7 @@ built by the same process — they only look as though they are.
 Each key is a little leaning prism, and the outer face of the block crops it. On the two faces
 **d** leans into, the crop leaves the key's root intact. On the other two, it slices the key almost
 tangentially, and what survives is a flared lip with nothing whatsoever behind it. I measured it on
-the mesh I had sent to the printer: **0.20 millimetres thick, running 16 millimetres across, a
+the mesh I had sent to the printer: **0.20 millimeters thick, running 16 millimeters across, a
 cantilever over air.**
 
 ![before and after, the same dovetail key](images/f2_ledge.png)
@@ -70,7 +70,7 @@ side face of the block sweeps across a strip. And:
 
 So the internal rail that anchors each key — the beam that keeps the visible tab from being a
 free-floating wafer — must start at whichever edge of the key lies furthest *inside* the block.
-From there it can be any width you like. Not one millimetre outboard of it.
+From there it can be any width you like. Not one millimeter outboard of it.
 
 And that edge is not the same one on every face.
 
@@ -98,7 +98,7 @@ the straight edition the four faces disagreed by up to **0.56 mm**. On the curve
 that opens with a rolling twist about an axis 15 cm outside the block — they disagreed by **0.93
 mm**.
 
-Just under a millimetre. Nobody who handled it ever noticed, and I had looked at that object for
+Just under a millimeter. Nobody who handled it ever noticed, and I had looked at that object for
 months. But it was there in the geometry the whole time, and the only reason I found it is that I
 went looking for something else.
 
@@ -127,20 +127,20 @@ material that was added lives in the region the faces cannot see.
 Then I carried the rule over to the curved edition, and this was the part I enjoyed. That one is
 not built with a shear but with a bend map — vertical design lines become circular orbits around
 the external axis — so "inboard" is not a direction you can read off a normal vector. You have to
-measure it: pre-image a point on the face, pre-image the same point one millimetre inside, and take
+measure it: pre-image a point on the face, pre-image the same point one millimeter inside, and take
 the difference.
 
 With that in hand the rule ran and chose two faces for flare-width anchoring. They were the same
 two faces the thin-feature scanner had flagged, arrived at from completely
 independent directions — one from a rule about what a face can see, the other from eroding sliced
-polygons by a quarter of a millimetre. When two unrelated methods point at the same two faces out
+polygons by a quarter of a millimeter. When two unrelated methods point at the same two faces out
 of four, you can stop worrying about whether you have understood the problem.
 
 Face spread on the curved edition: 0.93 mm → 0.008 mm. Worst patch: 1.55 mm² → 0.40 mm².
 
-What remains on both editions, at a quarter of a square millimetre a patch, genuinely *is* the
+What remains on both editions, at a quarter of a square millimeter a patch, genuinely *is* the
 chamfer I claimed the other thing was. I know because this time I checked what is behind it: sample
-inward from the face and the material grows from 0.16 mm to 1.35 mm over a couple of millimetres.
+inward from the face and the material grows from 0.16 mm to 1.35 mm over a couple of millimeters.
 A solid wedge. That test — **is there anything behind it?** — is the one I should have run the
 first time, and it takes about four lines of code.
 
@@ -165,5 +165,5 @@ them can be wrong in a way that sounds excellent.
 The blocks are corrected, both editions, and the code, the printable files, the full write-up and
 the verification logs are all at
 [github.com/pepistrafforello/U3T](https://github.com/pepistrafforello/U3T). The dovetails are
-crisp, the four faces now match to a thousandth of a millimetre, the hidden QR code still scans —
+crisp, the four faces now match to a thousandth of a millimeter, the hidden QR code still scans —
 and the thing still, after all this time, has no name.

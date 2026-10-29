@@ -313,7 +313,7 @@ def plat_ring(half_len, half_wid, z=None):
 
     The long axis is (1, -1): the level direction of the tilted plane, the one
     along which it keeps a constant height. The short axis is (1, 1), where it
-    climbs at tan(PLAT_TILT) per millimetre and runs out of slab.
+    climbs at tan(PLAT_TILT) per millimeter and runs out of slab.
     """
     r2 = np.sqrt(2.0)
     out = []
@@ -417,7 +417,7 @@ def export_welded(mesh, path, nudge=1e-4, tries=12):
 
     Whether it happens depends on where the grid falls, which is an accident of the
     translation. So: try, check, and if it pinched, shift the part by a ten-thousandth
-    of a millimetre and try again. It converges in one or two steps, and a sub-micron
+    of a millimeter and try again. It converges in one or two steps, and a sub-micron
     shift of a part that sits on the bed anyway has no dimensional meaning.
     """
     def sound(m):

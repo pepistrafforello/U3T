@@ -277,7 +277,7 @@ carries no free space for information. Adding the third axis is what buys the fr
 
 - **Depth costs lean.** Anything that protrudes above the band *and shows on a side face* — the
   dovetail keys — can only be as deep (into the body) as `lean × height`: a key h mm tall can
-  protrude at most `|(d₁,d₂)| × h` millimetres inward before the sliding motion would shear it
+  protrude at most `|(d₁,d₂)| × h` millimeters inward before the sliding motion would shear it
   off. A near-vertical **d** therefore produces wafer-thin keys no matter how they are drawn.
   With d = (0.7, 0.7, 1) and a 4 mm key, the tab is a solid ~2.8 mm deep — and 0.7 per axis is
   also the practical ceiling, because the leaning walls print at ~45°, the classic FDM limit.
@@ -304,7 +304,7 @@ carries no free space for information. Adding the third axis is what buys the fr
   key's waist; on the second pair it is the flare's *top* edge, so the rail comes out as wide as
   the flare itself. Anchor all four on the base edge — the obvious reading — and on two faces the
   flare is left cantilevered over nothing, 0.2 mm thick across 16 mm of width, while the rail
-  simultaneously breaks the surface of those faces by half a millimetre. Both failures are silent:
+  simultaneously breaks the surface of those faces by half a millimeter. Both failures are silent:
   the parts still separate perfectly, and the mesh is still a single watertight solid.
 
 ## Part 7 — The reference design
@@ -664,7 +664,7 @@ From outside, nothing gives the curve away — the four faces still show the sam
 ![Rotation cross-section](figures/rot_section_x50.png)
 
 **14.4 What the curvature costs.** Two honest deltas against the straight edition. Key depth is
-no longer equal on all faces: depth per millimetre of key height equals the ratio of the orbit's
+no longer equal on all faces: depth per millimeter of key height equals the ratio of the orbit's
 face-normal component to its vertical component, which grows toward the apex — the two faces
 nearer the apex get ~3.2 mm deep tabs, the two farther faces ~2.0 mm (the key was raised to
 4.5 mm tall to keep the shallow pair robust; all tabs remain rail-anchored solids per Part 6).

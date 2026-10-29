@@ -1,6 +1,6 @@
 """Read artwork drawn on a facet template back into the generator.
 
-The templates in docs/templates are millimetre-true SVG. Draw on them in Inkscape
+The templates in docs/templates are millimeter-true SVG. Draw on them in Inkscape
 (or anything that writes SVG), convert everything to closed filled paths, and this
 turns the result into the shapely polygons the relief is extruded from.
 
@@ -35,7 +35,7 @@ TEMPLATE_LAYER = "template"
 
 
 def _rings(shape, flatness=FLATNESS):
-    """Flatten one SVG shape into closed rings of millimetre points."""
+    """Flatten one SVG shape into closed rings of millimeter points."""
     path = Path(shape) if not isinstance(shape, Path) else shape
     rings, cur = [], []
     for seg in path.segments():
@@ -75,7 +75,7 @@ def _without_template(svg_path):
 
 
 def artwork(svg_path, flatness=FLATNESS):
-    """All artwork in the file as one shapely geometry, in page millimetres."""
+    """All artwork in the file as one shapely geometry, in page millimeters."""
     svg = SVG.parse(_without_template(svg_path), reify=True, ppi=25.4)
     out, skipped = [], 0
     for el in svg.elements():
@@ -114,7 +114,7 @@ def narrowest(geom, res=0.015):
 
     Eroding and measuring the leftover area counts the sharp corner of every
     glyph, so text always looked thin no matter how heavy it was. The ridge of
-    the distance transform is the centreline of each stroke, and twice its value
+    the distance transform is the centerline of each stroke, and twice its value
     there is the stroke width; a low percentile finds the narrowest one.
     """
     import numpy as _np
@@ -172,7 +172,7 @@ def facet_of(svg_path):
             merged = unary_union(strips)
             # On the combined sheet the seams between strips are internal: the
             # surface continues across them, stepped, and artwork is meant to
-            # cross. Close the sub-millimetre gaps the clearance leaves between
+            # cross. Close the sub-millimeter gaps the clearance leaves between
             # adjacent strips so the margin applies to the outer edge only.
             if len(strips) > 1:
                 merged = merged.buffer(0.4).buffer(-0.4)
@@ -198,7 +198,7 @@ def main():
                   f"({x0:.1f}, {y0:.1f})")
         if shapes > regions and regions:
             print(f"  note: {shapes} shapes merged into {regions}. Relief has one "
-                  f"height, so colour and opacity do not survive -- overlapping "
+                  f"height, so color and opacity do not survive -- overlapping "
                   f"shapes become a single raised blob.")
         facet = facet_of(path)
         if facet is None:

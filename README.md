@@ -81,7 +81,7 @@ docs/
   article/medium-post.md      the article, in Medium's voice
   article/medium-followup.md  the follow-up: what the first printed pair got wrong
   article/images/             their renders (Blender/Cycles) and diagrams (matplotlib)
-  templates/                  the five millimetre-true SVG canvases, and the guide to
+  templates/                  the five millimeter-true SVG canvases, and the guide to
                               drawing on them
 
 tools/
@@ -202,9 +202,9 @@ bottom solid  =  ⋃ₖ [ cylinder(ρ ≤ ρₖ₊₁) ∩ half-space(φ ≤ φ�
 | facet | tilt | strip width | length | canvas | carries |
 |---|---|---|---|---|---|
 | 1 | 62.0° | 8.5 mm | 41.3 mm | 182 mm² | — |
-| 2 | 53.5° | 13.1 mm | 88.6 mm | 876 mm² | the word `CDP`, 10.5 mm cap |
-| 3 | 47.0° | 14.4 mm | 88.0 mm | 964 mm² | `2019-2026`, 6.4 mm cap |
-| 4 | 41.8° | 15.8 mm | 47.9 mm | 422 mm² | the cube, 13.2 mm |
+| 2 | 53.5° | 13.1 mm | 88.6 mm | 876 mm² | `–80–`, 10.0 mm cap |
+| 3 | 47.0° | 14.4 mm | 88.0 mm | 964 mm² | `Louis Andre III`, 5.9 mm cap |
+| 4 | 41.8° | 15.8 mm | 47.9 mm | 422 mm² | the beret, 13.2 mm |
 | 5 | 37.3° | 2.8 mm | 7.0 mm | 10 mm² | — |
 | | | | | **2455 mm²** | |
 
@@ -249,7 +249,7 @@ and its boundary is itself a legal cliff.
 
 ### Drawing on it
 
-`docs/templates/` holds five millimetre-true SVG canvases, one per facet, plus a combined sheet
+`docs/templates/` holds five millimeter-true SVG canvases, one per facet, plus a combined sheet
 where the five sit in their true relative positions. They are measured off the built mesh, so a
 template is exactly the surface that exists — clearance, curtain and angle trim already taken off.
 
@@ -266,8 +266,8 @@ three and catches the "it was all still live text" mistake in a second rather th
 `facet_templates.py` refuses to overwrite a template that has been drawn on unless you pass
 `--force`.
 
-The shipped artwork is a lockup laid out across three facets by `tools/lockup_layout.py` — a name
-above, a company below, a cube between them. `docs/templates/relief.json` records how high each
+The shipped artwork is a lockup laid out across three facets by `tools/lockup_layout.py` — a
+stylized beret, a name, and a number. `docs/templates/relief.json` records how high each
 piece stands and what shape it is. Those are *nominal* heights, from which the relief keeps the
 0.15 mm clearance, so the text specified at 0.8 mm stands 0.65 mm off the built facet and the cube
 specified at 3.15 mm apexes at 3.00 mm. The text is flat-topped; the cube's three faces are real
@@ -275,9 +275,22 @@ sloped planes meeting at that apex, so it shades like a solid instead of reading
 
 ![The lockup on the flattened canvas](docs/article/images/f3_canvas.png)
 
+Relief comes in three kinds, set per facet in `relief.json`: `flat` caps the
+extrusion with a plane parallel to the facet, `pyramid` with three tilted planes
+meeting at an apex, and `dome` with a sphere. A spherical cap is a height field
+over its own facet exactly as a plane is, so a domed relief needs no more checking
+than a flat one — the facet is already normal to the motion, so anything
+single-valued over it is single-valued along the orbits too.
+
+The dome takes an apex height *and* a rim height, and the rim deliberately stops
+above the facet rather than running out to nothing: a dome that feathers to zero is
+a knife edge around its whole circumference, which is the one feature this part has
+already failed on once. The beret stands 3.0 mm at the crown and 0.8 mm at its rim,
+so its thinnest section is exactly the SLS minimum.
+
 Two things that shape relief on a surface like this, both learned by getting them wrong:
 
-* **A drawn cube is not a relief cube.** The three lines radiating from the centre of an isometric
+* **A drawn cube is not a relief cube.** The three lines radiating from the center of an isometric
   cube are *ridges*, which the pyramid raises by itself. Engraving them as grooves removes exactly
   the apex that sells the shape. The artwork is the plain silhouette; the geometry does the rest.
 * **Shading depends on apex ÷ radius, not on apex.** Seen down its diagonal a true cube's near
@@ -296,7 +309,7 @@ Two things that shape relief on a surface like this, both learned by getting the
 
 ## Design parameters
 
-All of them live at the top of the generators, in millimetres. Change one, re-run, and the whole
+All of them live at the top of the generators, in millimeters. Change one, re-run, and the whole
 object — including its proof — is rebuilt.
 
 | parameter | shipped | meaning |
@@ -388,8 +401,8 @@ generator attacks its own output before it exits, and writes the results to `ver
 | **control** — flat diagonal slide, 1 / 2 mm | collides: 292.5 / 919.7 mm³ | collides: 263.4 / 661.2 mm³ |
 | **control** — the *other* edition's move | — | collides: 315.2 mm³ (straight slide, 2 mm) |
 | **control** — reverse rotation, 1° | — | collides: 12 696 mm³ |
-| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 38 and 44 patches, 10.0 / 8.3 mm² |
-| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 202 and 194 patches, 52.5 / 141.0 mm² |
+| thin-feature scan, FDM rule | 15 and 14 patches, 3.3 / 3.7 mm² | 37 and 44 patches, 9.3 / 9.2 mm² |
+| thin-feature scan, SLS rule | 36 and 28 patches, 13.6 / 11.2 mm² | 191 and 196 patches, 60.6 / 167.1 mm² |
 
 The control rows are the puzzle property itself, measured rather than asserted: the naive motions
 jam, and the one intended motion sweeps through the entire disassembly without ever touching. The
@@ -417,7 +430,7 @@ manufacturability review flagged two of them, the generators enforce a minimum-f
 * **Asymmetric clearance on the artwork.** A sliding fit does not need the gap split evenly. The
   raised side keeps its full nominal stroke width (never below `MIN_FEATURE` = 0.55 mm) and the
   cavity absorbs the whole 0.3 mm — otherwise the wall left standing between two neighbouring
-  letter cavities can shrink to a tenth of a millimetre. Residual sub-minimum necks are removed by
+  letter cavities can shrink to a tenth of a millimeter. Residual sub-minimum necks are removed by
   a morphological opening; sub-minimum walls between adjacent cavities are fused by a closing
   (`clean_thin`, `close_gaps`, `content_offset` in `u3t_generator.py`).
 * **A straight neck under every flare.** The key lip starts only above `KEY_NECK_Z`, where its own
@@ -468,7 +481,7 @@ three classes, and each one has to be argued rather than counted.
   ridge is the highest point of the part, laid down last on top of the material that supports it.
 
 What is left, then, is in every case the corner where one surface runs out into another. Sample the
-material behind a key-flank patch and it grows 0.16 → 1.35 mm over a couple of millimetres of
+material behind a key-flank patch and it grows 0.16 → 1.35 mm over a couple of millimeters of
 width: a solid wedge, which is what a chamfer is. That test — *is there material behind it* — is
 the one worth running on anything a thin-feature scan reports, and it is the test the shipped ledge
 would have failed.
@@ -494,7 +507,7 @@ nothing backs that wing but the *face shadow* — the strip of the design plan t
 side face sweeps as z runs over the key (the same shadow that drives the third
 design rule above). A wing at lateral offset *w* first exists at the height where
 the flare reaches *w*, and from there its depth grows at the lean, about a third of
-a millimetre per millimetre of height:
+a millimeter per millimeter of height:
 
 ![the key's wing, before and after](docs/article/images/f4_key_wing.png)
 
@@ -518,7 +531,7 @@ improved at once:
 
 With the axis later moved (next section) the flare came back; what follows
 described the straight-sided interim. What is left under 0.8 mm on a key is a
-sliver about half a millimetre wide along its two vertical edges, where a wall parallel to the motion meets the face
+sliver about half a millimeter wide along its two vertical edges, where a wall parallel to the motion meets the face
 at an oblique angle. That is a corner between two solid surfaces, not a wall: the
 material behind it grows immediately, and SLS renders it as a slightly rounded
 edge. It is the same class of feature that printed correctly on all four FDM parts
@@ -595,14 +608,14 @@ What it bought, measured against the pair that came back from SLS:
 |---|---|---|
 | key profile | dovetail 11.7 → 19.1 mm, over 65 % of the height | dovetail 11.7 → 16.7 mm, over 67 % |
 | widening, as a share of the key's height | 65 % | **67 %** |
-| thin-feature scan, SLS rule, bottom | 87.5 mm² | **52.5 mm²** |
-| thin-feature scan, SLS rule, top | 180.6 mm² | **141.0 mm²** |
+| thin-feature scan, SLS rule, bottom | 87.5 mm² | **60.6 mm²** |
+| thin-feature scan, SLS rule, top | 180.6 mm² | **167.1 mm²** |
 | lock against a straight 1 mm lift | 68.7 mm³ | **277.5 mm³** |
 | canvas | 3553 mm² in five facets | 2455 mm² in five |
 
 And what it cost, stated plainly: **the canvas halved**, which is the conservation
 law being paid rather than a mistake, and the content came down with it — from a
-three-part lockup to a cube, the dates `2019-2026` and `CDP`, one to a facet.
+three-part lockup to a beret, the name `Louis Andre III` and `–80–`, one to a facet.
 
 Measured face-on with rays rather than by slicing, every key improves:
 
